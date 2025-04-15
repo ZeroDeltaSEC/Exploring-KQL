@@ -126,3 +126,18 @@ union
     or RawEventData has_any(sqlInjectionPatterns)
 | project Timestamp, DeviceName, RemoteUrl, InitiatingProcessCommandLine, AdditionalFields
 | order by Timestamp desc
+
+search in (DeviceEvents, DeviceNetworkEvents, DeviceWebTrafficEvents, DeviceFileEvents)
+    "or '1'='1"
+    or "-- OR 1=1 --"
+    or "; DROP TABLE"
+    or "EXEC"
+    or "UNION SELECT"
+    or "--a"
+    or "OR 'a'='a"
+    or "or 1=1--"
+    or "or 1=1#"
+    or "or 1=1/*"
+| where Timestamp >= ago(7d)
+| project Timestamp, DeviceName, DeviceId
+| order by Timestamp desc
