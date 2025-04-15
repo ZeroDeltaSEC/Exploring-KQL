@@ -32,3 +32,20 @@ search *
 | where TimeGenerated >= ago(7d)
 | where tostring(parse_json(tostring(*))) has_any(sqlInjectionPatterns)
 | project TimeGenerated, SourceTable, _ResourceId, Computer, IPAddress, Account, _RawData = *
+
+let sqlInjectionPatterns = dynamic([
+    "' or '1'='1",
+    "' OR 1=1 --",
+    "'; DROP TABLE",
+    "'; EXEC",
+    "' UNION SELECT",
+    "'--",
+    "' OR 'a'='a",
+    "' or 1=1--",
+    "' or 1=1#",
+    "' or 1=1/*"
+]);
+search *
+| where TimeGenerated >= ago(7d)
+| where * has_any(sqlInjectionPatterns)
+// | project TimeGenerated, SourceTable, _ResourceId, Computer, IPAddress, Account, EventData = *
