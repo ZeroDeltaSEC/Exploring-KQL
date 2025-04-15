@@ -83,3 +83,17 @@ let sqlInjectionPatterns = dynamic([
 search in (*)
 | where TimeGenerated >= ago(7d)
 | where tostring(*) has_any sqlInjectionPatterns
+
+
+search 
+  "or '1'='1" or
+  "-- OR 1=1 --" or
+  "; DROP TABLE" or
+  "EXEC" or
+  "UNION SELECT" or
+  "--a" or
+  "OR 'a'='a" or
+  "or 1=1--" or
+  "or 1=1#" or
+  "or 1=1/*"
+| where TimeGenerated >= ago(7d)
