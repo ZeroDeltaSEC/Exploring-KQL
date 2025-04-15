@@ -97,3 +97,32 @@ search
   "or 1=1#" or
   "or 1=1/*"
 | where TimeGenerated >= ago(7d)
+
+defender
+
+let sqlInjectionPatterns = dynamic([
+    "or '1'='1",
+    "-- OR 1=1 --",
+    "; DROP TABLE",
+    "EXEC",
+    "UNION SELECT",
+    "--a",
+    "OR 'a'='a",
+    "or 1=1--",
+    "or 1=1#",
+    "or 1=1/*"
+]);
+
+union 
+    DeviceNetworkEvents,
+    DeviceWebTrafficEvents,
+    DeviceFileEvents,
+    DeviceProcessEvents
+| where Timestamp >= ago(7d)
+| where
+    RemoteUrl has_any(sqlInjectionPatterns)
+    or InitiatingProcessCommandLine has_any(sqlInjectionPatterns)
+    or AdditionalFields has_any(sqlInjectionPatterns)
+    or RawEventData has_any(sqlInjectionPatterns)
+| project Timestamp, DeviceName, RemoteUrl, InitiatingProcessCommandLine, AdditionalFields
+| order by Timestamp desc
