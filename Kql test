@@ -1,0 +1,17 @@
+let sqlInjectionPatterns = dynamic([
+    "' or '1'='1",
+    "' OR 1=1 --",
+    "'; DROP TABLE",
+    "'; EXEC",
+    "' UNION SELECT",
+    "'--",
+    "' OR 'a'='a",
+    "' or 1=1--",
+    "' or 1=1#",
+    "' or 1=1/*"
+]);
+// Example for SigninLogs (Azure AD/Entra ID logs)
+SigninLogs
+| where TimeGenerated >= ago(7d)
+| where UserPrincipalName has_any(sqlInjectionPatterns) or Identity has_any(sqlInjectionPatterns)
+| project TimeGenerated, UserPrincipalName, Identity, IPAddress, AppDisplayName, ResourceDisplayName, ConditionalAccessStatus
