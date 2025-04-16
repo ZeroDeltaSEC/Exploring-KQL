@@ -1,0 +1,33 @@
+let ip = "10.180.11.13";
+search in
+(Anomalies,CloudAppEvents,CommonSecurityLog,DeviceEvents,DeviceFileEvents,DeviceInfo,DeviceLogonEvents,
+AzureActivity,
+DeviceNetworkEvents,EmailEvents,OfficeActivity,SecurityEvent,ThreatIntelligenceIndicator,UrlClickEvents,Behav
+iorAnalytics)
+TimeGenerated between (ago(15d) .. now())
+and (
+// ** Events initiated by this IP **
+DestinationIpAddress == ip // Anomalies, UrlClickEvents
+or IPAddress == ip // CloudAppEvents
+or RemoteIP == ip // CommonSecurityLog, DeviceEvents, DeviceLogonEvents, DeviceNetworkEvents
+or FileOriginIP == ip // DeviceFileEvents
+or SenderIPv4 == ip // EmailEvents
+or ClientIP == ip // OfficeActivity
+or NetworkDestinationIP == ip // ThreatIntelligenceIndicator
+or DestinationIPAddress == ip // BehaviorAnalytics
+//
+// ** Events affecting this IP **
+or SourceIpAddress == ip or SourceIP == ip or CallerIpAddress == ip or RequestSourceIP == ip or PublicIP == ip or LocalIP == ip or ClientIPAddress == ip or NetworkSourceIP == ip or SourceIPAddress == ip // Anomalies
+// CommonSecurityLog, DeviceEvents
+// AzureActivity
+// DeviceFileEvents
+// DeviceInfo
+// DeviceNetworkEvents
+// SecurityEvent
+// ThreatIntelligenceIndicator
+// BehaviorAnalytics
+)
+This KQL query searches across these Sentinel log tables for the ip variable that is defined at the start:
+// Anomalies, CloudAppEvents, CommonSecurityLog, DeviceEvents, DeviceFileEvents, DeviceInfo,
+DeviceLogonEvents, AzureActivity DeviceNetworkEvents, EmailEvents, OfficeActivity, SecurityEvent,
+ThreatIntelligenceIndicator, UrlClickEvents, BehaviorAnalytics
