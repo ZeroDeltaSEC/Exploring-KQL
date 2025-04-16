@@ -1,0 +1,9 @@
+BehaviorAnalytics
+| where TimeGenerated > ago(90d)
+| where DevicesInsights contains "ThreatIntelIndicatorType"
+| extend ThreatIntel=tostring(DevicesInsights.ThreatIntelIndicatorDescription)
+| where ThreatIntel contains "IP Address used for validating compromised Entra ID credentials"
+| where SourceDevice == "" and ActivityType != "FailedLogOn"
+| where InvestigationPriority > 0
+| project TimeGenerated, InvestigationPriority, UserPrincipalName, SourceIPAddress, SourceIPLocation,
+UsersInsights, DevicesInsights, ActivityInsights
