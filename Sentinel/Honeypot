@@ -1,0 +1,8 @@
+BehaviorAnalytics
+| where TimeGenerated > ago(90d)
+| where EventSource == "Azure AD"
+| where tostring(DevicesInsights.ThreatIntelIndicatorType) has "HoneypotAccess"
+| summarize arg_max(TimeGenerated, *) by SourceIPAddress
+| project TimeGenerated, SourceIPAddress, tostring(DevicesInsights.ThreatIntelIndicatorDescription)
+
+The provided KQL sample extracts Honeypot TI from Sentinel UEBA associated with your Entra Tenant.
