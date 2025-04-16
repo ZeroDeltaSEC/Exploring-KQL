@@ -1,0 +1,8 @@
+DeviceTvmSoftwareVulnerabilities
+| join kind=inner (
+DeviceTvmSoftwareVulnerabilitiesKB
+| project CveId
+) on CveId
+| project DeviceName, CveId, RecommendedSecurityUpdateId
+| summarize MissingKBs = make_set(RecommendedSecurityUpdateId) by DeviceName
+| where array_length(MissingKBs) > 0
