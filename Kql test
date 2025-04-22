@@ -1,4 +1,4 @@
-7let sqlInjectionPatterns = dynamic([
+57let sqlInjectionPatterns = dynamic([
     "' or '1'='1",
     "' OR 1=1 --",
     "'; DROP TABLE",
@@ -154,3 +154,9 @@ SecurityEvent
 | where isnull(UnlockTime) or LockoutTime > UnlockTime
 | project TargetUserName, LockoutTime, UnlockTime
 | sort by TargetUserName asc
+
+SecurityEvent
+| where EventID == 4740 // Lockout event
+| where TargetUserName == "123654" and Computer contains "ge32145"
+| project TimeGenerated, TargetUserName, Computer, AccountDomain, EventData
+| sort by TimeGenerated desc
