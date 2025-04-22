@@ -141,3 +141,16 @@ search in (DeviceEvents, DeviceNetworkEvents, DeviceWebTrafficEvents, DeviceFile
 | where Timestamp >= ago(7d)
 | project Timestamp, DeviceName, DeviceId
 | order by Timestamp desc
+
+let UnlockEvents = SecurityEvent
+    | where EventID == 4767
+    | summarize arg_max(TimeGenerated, *) by TargetUserName
+    | extend UnlockTime = TimeGenerated;
+SecurityEvent
+| where EventID == 4740
+| summarize arg_max(TimeGenerated, *) by TargetUserName
+| extend LockoutTime = TimeGenerated
+| join kind=leftouter UnlockEvents on TargetUserName
+| where isnull(UnlockTime) or LockoutTime > UnlockTime
+| project TargetUserName, LockoutTime, UnlockTime
+| sort by TargetUserName asc
