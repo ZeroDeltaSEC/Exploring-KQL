@@ -110,3 +110,163 @@ un grafic care îți arată automat TOP-ul pentru metrica selectată;
 
 Astfel ai exact ce îți doreai: informația se schimbă dinamic pe baza selecțiilor fără sa-ți mai atingi KQL-ul de fiecare dată. Spor la investigat!
 
+
+Sigur! Hai să luăm Partea 2 - Crearea unui Workbook în detaliu, pas cu pas, ca să fie totul clar:
+
+
+---
+
+1. Deschide Microsoft Sentinel → Workbooks
+
+În portalul Azure, mergi la Microsoft Sentinel.
+
+Selectează workspace-ul tău.
+
+În meniu, click pe Workbooks.
+
+Aici vezi workbooks existente sau poți crea unul nou.
+
+
+
+---
+
+2. Creează un Workbook Nou
+
+Click pe + New workbook.
+
+Apare o pagină albă cu opțiuni de editare.
+
+Click pe Edit în dreapta sus (modul de editare e activat).
+
+
+
+---
+
+3. Adaugă Parametri Interactivi
+
+3.1. Parametru pentru alegerea metricii (UserAgent / IP / Țară)
+
+Click pe Add parameters (în dreapta sus, sub Edit).
+
+Completează așa:
+
+Click pe Save.
+
+
+3.2. Parametru pentru UserPrincipalName (email-ul)
+
+Click din nou pe Add parameters.
+
+Completează:
+
+Click pe Save.
+
+
+
+---
+
+4. Adaugă un Query Vizualizabil
+
+Click pe Add query.
+
+Alegi Data source: Log Analytics.
+
+Selectezi workspace-ul.
+
+Scrii KQL-ul de mai jos în fereastra de query:
+
+
+let timeRange   = {TimeRange};  // parametrul implicit de timp al workbook-ului
+let who         = '{UPN}';      // parametrul de email (textbox-ul)
+let metric      = '{Metric}';   // dropdown-ul ales
+SigninLogs
+| where TimeGenerated {timeRange}
+| where UserPrincipalName == who
+| extend Country = tostring(LocationDetails.countryOrRegion)
+| extend MetricValue = case(
+        metric == 'UserAgent', UserAgent,
+        metric == 'IPAddress', IPAddress,
+        metric == 'Country',  Country,
+        UserAgent)            // fallback la UserAgent
+| summarize Logins = count() by MetricValue
+| top 20 by Logins desc
+| order by Logins desc
+| render columnchart
+
+Click pe Run Query – o să vezi un grafic de tip bar chart (coloane).
+
+Sub query, la Visualization, asigură-te că este selectat Column chart (sau poți schimba în Pie chart, dacă vrei).
+
+
+
+---
+
+5. Fă-l Interactiv (Facultativ, dar puternic)
+
+Click pe barele graficului → să schimbe alte grafice
+
+Sub query-ul tău (după ce vezi graficul), click pe Advanced Settings.
+
+La Interactivity, bifează When a row is clicked:
+
+Set parameter: creezi un nou parametru numit, de exemplu, SelectedItem.
+
+
+
+Adaugă un alt query detaliat pe baza click-ului
+
+Click pe Add query din nou.
+
+Scrii un nou KQL, de exemplu:
+
+
+let timeRange   = {TimeRange};
+let who         = '{UPN}';
+let selected    = '{SelectedItem}';
+SigninLogs
+| where TimeGenerated {timeRange}
+| where UserPrincipalName == who
+| extend Country = tostring(LocationDetails.countryOrRegion)
+| extend MetricValue = case(
+        '{Metric}' == 'UserAgent', UserAgent,
+        '{Metric}' == 'IPAddress', IPAddress,
+        '{Metric}' == 'Country',  Country,
+        UserAgent)
+| where MetricValue == selected
+| summarize Logins=count() by bin(TimeGenerated, 1h)
+| order by TimeGenerated asc
+| render timechart
+
+Acum, când dai click pe o bară din graficul principal, al doilea grafic îți va arăta evoluția în timp a acelui UserAgent/IP/Country.
+
+
+
+---
+
+6. Salvează Workbook-ul
+
+Click pe Done Editing.
+
+Apoi Save As → dai un nume și poți seta permisiuni de partajare.
+
+
+
+---
+
+Recapitulare Vizual
+
+
+---
+
+Tips:
+
+Poți adăuga mai multe grafice: top IP-uri, trenduri în paralel, etc.
+
+Poți exporta orice vizualizare sau programări automatizate pe email.
+
+Experimentează cu tiles diferite (metric, grid, chart, etc).
+
+
+E clar acum? Vrei să detaliem și interacțiunile între grafice sau cum să faci salvări automate?
+
+
