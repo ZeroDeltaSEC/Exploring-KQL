@@ -1,0 +1,112 @@
+Cum îți transformi rapid query-ul într-un raport interactiv în Microsoft Sentinel
+
+
+---
+
+1. Extinde KQL-ul ca să scoată TOP-urile pe care le vrei
+
+let lookBack      = 90d;                               // ușor de schimbat dintr-un parametru
+let targetUser    = "eecaa@cexa.com";                  // va deveni parametru în workbook  
+SigninLogs
+| where TimeGenerated > ago(lookBack)
+| where UserPrincipalName == targetUser
+| extend Country = tostring(LocationDetails.countryOrRegion),
+         City    = tostring(LocationDetails.city)
+| summarize Logins = count()
+          by UserAgent, IPAddress, Country, City
+
+> De aici poți genera trei vizualizări separate sau una singură, în funcție de „metricul” ales la runtime.
+
+
+
+
+---
+
+2. Creează un Workbook (meniul Workbooks în Sentinel)
+
+1. New workbook → Edit.
+
+
+2. Add parameter
+
+Name: Metric
+
+Type: Dropdown
+
+Values:
+
+UserAgent
+IPAddress
+Country
+
+
+
+3. Add another parameter pentru UPN (presetat cu „eecaa@cexa.com”) – tip Text.
+
+
+4. Add query și pune KQL-ul de mai jos. Observă cum folosim parametrul Metric pentru a alege câmpul la runtime:
+
+
+
+let timeRange   = {TimeRange};           // parametrul standard de timp al workbook-ului
+let who         = '{UPN}';               // parametrul text creat mai sus
+let metric      = '{Metric}';            // dropdown creat la pasul 2
+SigninLogs
+| where TimeGenerated {timeRange}
+| where UserPrincipalName == who
+| extend Country = tostring(LocationDetails.countryOrRegion)
+| extend MetricValue = case(
+        metric == 'UserAgent', UserAgent,
+        metric == 'IPAddress', IPAddress,
+        metric == 'Country',  Country,
+        UserAgent)            // valoare implicită
+| summarize Logins = count() by MetricValue
+| top 20 by Logins desc
+| order by Logins desc
+| render columnchart
+
+> Parametrizarea cu case() permite să schimbăm coloana fără să rescriem query-ul. 
+
+
+
+5. În Visualization alege Bar chart (sau Pie chart) pentru top-uri.
+
+
+
+
+---
+
+3. Adaugă interactivitate pe click (opțional, dar fain)
+
+După ce ai grid-ul/bar-chart-ul, bifează Settings → Interactivity → When a row is clicked → Set parameter.
+
+Creează un nou parametru, ex. SelectedItem, care primește valoarea pe care ai dat click.
+
+Adaugă un al doilea query care folosește SelectedItem ca filtru (ex. detalierea cronologică a acelui IP sau UserAgent).
+
+
+Așa, atunci când alegi altă valoare din dropdown sau dai click pe o bară din grafic, toate vizualizările din workbook se actualizează instant. 
+
+
+---
+
+4. Câteva fine-tunings utile
+
+
+---
+
+Rezultat
+
+După ce salvezi workbook-ul, vei avea:
+
+un dropdown „Metric” (UserAgent / IP / Country);
+
+un textbox pentru UPN;
+
+un grafic care îți arată automat TOP-ul pentru metrica selectată;
+
+(opțional) vizualizări suplimentare care răspund la click.
+
+
+Astfel ai exact ce îți doreai: informația se schimbă dinamic pe baza selecțiilor fără sa-ți mai atingi KQL-ul de fiecare dată. Spor la investigat!
+
