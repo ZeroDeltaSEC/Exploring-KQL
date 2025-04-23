@@ -152,3 +152,16 @@ SigninLogs
 | extend Browser = tostring(ua.Browser.Family)                // e.g. "Chrome", "Edge"
 | summarize Logins = count() by Browser, IPAddress, Location
 | order by Logins desc
+
+
+xxxxxc
+
+
+let base = SigninLogs
+| where UserPrincipalName == '{UPN}'
+| where TimeGenerated {TimeRange:query}
+| extend Browser = tostring(parse_user_agent(UserAgent).Browser.Family);   // "Chrome", "Edge", …
+
+base
+| summarize Logins = count() by Browser, IPAddress, Location
+| order by Logins desc
