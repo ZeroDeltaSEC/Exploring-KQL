@@ -1,4 +1,4 @@
-Cum îți transformi rapid query-ul într-un raport interactiv în Microsoft Sentinel
+yCum îți transformi rapid query-ul într-un raport interactiv în Microsoft Sentinel
 
 
 ---
@@ -510,4 +510,14 @@ SigninLogs
 | order by Logins desc
 | render columnchart
 
+xxxxxc
 
+
+let who = '{UPN}';
+SigninLogs
+| where UserPrincipalName == who
+| extend Country = tostring(LocationDetails.countryOrRegion)
+| summarize Logins = count() by Country
+| top 10 by Logins desc
+| order by Logins desc
+| render columnchart
