@@ -177,3 +177,17 @@ let base = SigninLogs
 base
 | summarize Logins = count() by Browser, IPAddress, Location
 | order by Logins desc
+
+
+xxxxxc
+
+
+let base = SigninLogs
+| where TimeGenerated {TimeRange:query}
+| where isempty('{UPN}') or UserPrincipalName == '{UPN}'
+| extend ua = parse_user_agent(UserAgent, "browser")
+| extend Browser = strcat(tostring(ua.Browser.Family), " ", tostring(ua.Browser.MajorVersion));  // e.g. "Chrome 135"
+
+base
+| summarize Logins = count() by Browser, IPAddress, Location
+| order by Logins desc
