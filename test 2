@@ -1,4 +1,4 @@
-1. Pornește un Workbook gol
+61. Pornește un Workbook gol
 Conectează-te la portal.azure.com și selectează Microsoft Sentinel.
 
 Alege workspace-ul dorit, apoi în meniul din stânga intră la Workbooks.
@@ -200,4 +200,24 @@ xxxxxcx
 | extend fam = tostring(ua.Browser.Family), ver = tostring(ua.Browser.MajorVersion)
 | extend Browser = case(fam == "" or fam == "Other",           // if not recognised
                         UserAgent,                              // show full raw string
-                        strcat(fam, " ", ver))                  // else "Chrome 135", "Edge 124", …
+                        strcat(fam, " ", ver))                  // else "Chrome 135", "Edge 124", 
+
+
+xxxxxx
+
+let base =
+    SigninLogs
+    | where TimeGenerated {TimeRange:query}
+    | where isempty('{UPN}') or UserPrincipalName == '{UPN}'
+    | extend ua  = parse_user_agent(UserAgent, "browser")
+    | extend fam = tostring(ua.Browser.Family)
+    | extend ver = tostring(ua.Browser.MajorVersion)
+    | extend Browser = case(
+            fam == "" or fam == "Other",
+            UserAgent,                       // fallback → full raw UA string
+            strcat(fam, " ", ver)            // e.g. "Chrome 135"
+        );                                   // ← **semicolon closes the let**
+
+base
+| summarize Logins = count() by Browser, IPAddress, Location
+| order by Logins desc
