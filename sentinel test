@@ -661,3 +661,19 @@ Salvează un template ca să-l folosești și pentru alți useri.
 
 Te ajută ideile astea? Vrei să implementăm vreuna? Sau ai nevoie de ceva și mai specific?
 
+
+
+xxccc
+
+let who = '{UPN}';
+let TopIPs = SigninLogs
+| where UserPrincipalName == who
+| summarize Logins = count() by IPAddress
+| top 5 by Logins desc
+| project IPAddress;
+SigninLogs
+| where IPAddress in (TopIPs)
+| extend Country = tostring(LocationDetails.countryOrRegion)
+| summarize Logins = count() by IPAddress, Country, UserPrincipalName
+| order by IPAddress, Logins desc
+| render table
