@@ -114,3 +114,20 @@ Cu pașii de mai sus ți-ai creat primul workbook interactiv: inspector de auten
 
 
 Sources
+
+
+xxxxx
+
+
+// 1. Calculăm durata aleasă în selectorul TimeRange
+let lookBack = toduration({TimeRange});       // ex. P30D → 30.00:00:00
+
+// 2. Construim baza filtrând pe interval + UPN
+let base = SigninLogs
+| where TimeGenerated > ago(lookBack)         // aici folosim durata convertită
+| where UserPrincipalName == '{UPN}';         // o singură acoladă!
+
+// 3. Statistica pe care o afişăm în grid
+base
+| summarize Logins = count() by UserAgent, IPAddress, Location
+| order by Logins desc
