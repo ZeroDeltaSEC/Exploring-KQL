@@ -501,5 +501,13 @@ SigninLogs
 | order by Logins desc
 | render columnchart
 
+let who = '{UPN}';  // Parametru pentru email
+SigninLogs
+| where UserPrincipalName == who
+| extend Combined = strcat(UserAgent, " | ", IPAddress)
+| summarize Logins = count() by Combined
+| top 20 by Logins desc
+| order by Logins desc
+| render columnchart
 
 
