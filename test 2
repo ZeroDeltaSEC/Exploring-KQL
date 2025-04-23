@@ -131,3 +131,24 @@ let base = SigninLogs
 base
 | summarize Logins = count() by UserAgent, IPAddress, Location
 | order by Logins desc
+
+
+xxxxxc
+
+// add this just before your summarize
+| extend Browser = tostring(parse_user_agent(UserAgent, "browser").Browser.Family)
+
+
+// Base filters (time-range + optional UPN)
+let startTime = datetime({TimeRange:start});
+let endTime   = datetime({TimeRange:end});
+let user      = '{UPN}';
+
+SigninLogs
+| where TimeGenerated between (startTime .. endTime)
+| where user == '' or UserPrincipalName == user
+// ──► NEW: turn the raw UA into a tiny object
+| extend ua = parse_user_agent(UserAgent, "browser")          // returns a dynamic object
+| extend Browser = tostring(ua.Browser.Family)                // e.g. "Chrome", "Edge"
+| summarize Logins = count() by Browser, IPAddress, Location
+| order by Logins desc
