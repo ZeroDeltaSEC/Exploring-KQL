@@ -492,4 +492,14 @@ Workbook-ul poate fi partajat cu echipa.
 Totul clar? Sau vrei să detaliem un pas anume mai mult?
 
 
+let who = '{UPN}';  // Parametru pentru email
+SigninLogs
+| where UserPrincipalName == who
+| extend Combined = strcat(UserAgent, " | ", IPAddress)
+| summarize Logins = count() by Combined
+| top 20 by Logins desc
+| order by Logins desc
+| render columnchart
+
+
 
