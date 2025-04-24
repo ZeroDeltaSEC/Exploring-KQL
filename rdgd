@@ -1,0 +1,21 @@
+// ---- Cine a resetat parola contului 123456 ----
+let Account   = "123456";          // poate fi UPN, displayName ori objectId – modifică după cum e real în tenant
+let Ops       = dynamic(["Reset user password",
+                         "Reset password (by admin)",
+                         "Change user password"]);  // include și schimbarea făcută chiar de utilizator
+AuditLogs
+| where OperationName in (Ops)                      // filtrează numai evenimentele de reset/ schimbare parolă
+| mv-expand Target = TargetResources                // TargetResources e un array → îl derulăm
+| extend TargetUPN  = tostring(Target.userPrincipalName),
+         TargetId   = tostring(Target.id),
+         TargetDisp = tostring(Target.displayName)
+| where Account in (TargetUPN, TargetId, TargetDisp) // prindem contul indiferent de câmpul populat
+| extend ResetByName = tostring(InitiatedBy.user.displayName),
+         ResetByUPN  = tostring(InitiatedBy.user.userPrincipalName),
+         ResetById   = tostring(InitiatedBy.user.id),
+         App         = tostring(InitiatedBy.app.displayName),
+         SrcIP       = tostring(InitiatedBy.user.ipAddress)
+| project TimeGenerated, OperationName,
+          TargetUPN,                               // contul impactat
+          ResetByName, ResetByUPN, App, SrcIP      // cine și de unde a acționat
+| sort by TimeGenerated desc
