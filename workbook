@@ -167,3 +167,15 @@ Performance – prefix each search * with a time filter (| where TimeGenerated >
 
 Give it a try and tell me where you’d like more depth – regex tricks, automatic vendor-to-connector lookup, or schema-aware queries for a specific product!
 
+xxxxxxxxc
+
+search *
+| extend Vendor = coalesce(                         // returnează primul non-empty
+        column_ifexists("DeviceVendor",  ""),       // 2-nd arg = default
+        column_ifexists("Vendor",        ""),
+        column_ifexists("VendorName",    ""),
+        column_ifexists("DeviceProduct", "")
+    )
+| where isnotempty(Vendor)
+| summarize by Vendor
+| order by Vendor asc
