@@ -1,281 +1,101 @@
-Sure! Here's a detailed step-by-step guide in English to help you build a Workbook in Microsoft Sentinel that:
-
-1. Lists all $tables with event counts.
+Absolutely! Here's your complete professional setup in English, combining everything we've discussed, ready for implementation in your Sentinel Workbook.
 
 
-2. Maps each table to potential data sources / technologies.
+---
+
+Complete Sentinel Workbook Configuration – Professional Version
 
 
-3. Optionally allows filtering and drilling into who is writing to each table.
+---
 
+1. Dropdown Parameter for Table Selection
+
+Manual Values (full list of your tables):
+
+AADManagedIdentitySignInLogs
+AADNonInteractiveUserSignInLogs
+AADProvisioningLogs
+AADServicePrincipalSignInLogs
+AADUserRiskEvents
+AWSCloudTrail
+AlertEvidence
+AlertInfo
+Anomalies
+ApacheHTTPServer_CL
+AppExceptions
+AppPerformanceCounters
+AppRequests
+AppTraces
+AuditLogs
+Audits_Data_CL
+AzureMetrics
+BehaviorAnalytics
+CloudAppEvents
+CommonSecurityLog
+Detections_Data_CL
+DeviceEvents
+DeviceFileCertificateInfo
+DeviceFileEvents
+DeviceImageLoadEvents
+DeviceInfo
+DeviceLogonEvents
+DeviceNetworkEvents
+DeviceNetworkInfo
+DeviceProcessEvents
+DeviceRegistryEvents
+EmailAttachmentInfo
+EmailEvents
+EmailPostDeliveryEvents
+EmailUrlInfo
+Entities_Data_CL
+Entity_Scoring_Data_CL
+ForcepointDLPEvents_CL
+Health_Data_CL
+Heartbeat
+IdentityDirectoryEvents
+IdentityInfo
+IdentityLogonEvents
+IdentityQueryEvents
+MDCFileIntegrityMonitoringEvents
+MicrosoftGraphActivityLogs
+OfficeActivity
+Operation
+PingFederate_CL
+SecurityAlert
+SecurityEvent
+SecurityIncident
+SecurityScorecardRatings_CL
+SigninLogs
+Syslog
+ThreatIntelIndicators
+ThreatIntelligenceIndicator
+UrlClickEvents
+Usage
+W3CIISLog
+ZimperiumMitigationLog_CL
+Zimperium_CL
+Zscaler_CL
+agari_appadctivity_log_CL
+agari_appdtc_log_CL
+agari_investigation_log_CL
+file_data_CL
+globalprotect_CL
+hipmatch_CL
+system_CL
+threat_log_CL
+traffic_CL
+url_CL
+userid_CL
+
+Parameter Name: SelectedTable
+
+Display Name: Select Table
 
 
 
 ---
 
-Step-by-Step: Build a Workbook for Table Sources
-
-
----
-
-STEP 1: Open Microsoft Sentinel and Create a New Workbook
-
-1. Go to Azure Portal → Microsoft Sentinel → Your Workspace.
-
-
-2. In the left menu: Workbooks.
-
-
-3. Click + New.
-
-
-
-
----
-
-STEP 2: Create a Query for All $tables
-
-1. Click Add query.
-
-
-2. Select Data source: Logs.
-
-
-3. Paste this query:
-
-
-
-search *
-| summarize Events = count() by Table = $table
-| order by Events desc
-
-4. Below the query:
-
-Visualization: Table.
-
-Check Set this query as a parameter (name it: TableList).
-
-
-
-5. Click Done Editing.
-
-
-
-
----
-
-STEP 3: Create a Static Mapping of Table to Technology Source
-
-1. Add a new Query control.
-
-
-2. Use this query:
-
-
-
-let TableSources = datatable(Table:string, Source:string)
-[
-  "CommonSecurityLog", "CEF/Syslog – Firewalls, Proxies, WAFs",
-  "DeviceEvents", "Microsoft Defender for Endpoint",
-  "SecurityEvent", "Windows Logs – MMA/AMA Agents",
-  "Syslog", "Linux Servers via Syslog",
-  "AzureActivity", "Azure Subscription Activity Logs",
-  "Heartbeat", "OMS/AMA Agent Status/Health",
-  "SigninLogs", "Azure AD Sign-ins",
-  "OfficeActivity", "Microsoft 365 Audit Logs"
-];
-TableSources
-
-3. Visualization: Table.
-
-
-4. Check Set as Parameter – name it: SourceMap.
-
-
-
-
----
-
-STEP 4: Join Live Table Data with Static Source Mapping
-
-1. Add a new Query control.
-
-
-2. Use this query:
-
-
-
-let TableSources = datatable(Table:string, Source:string)
-[
-  "CommonSecurityLog", "CEF/Syslog – Firewalls, Proxies, WAFs",
-  "DeviceEvents", "Microsoft Defender for Endpoint",
-  "SecurityEvent", "Windows Logs – MMA/AMA Agents",
-  "Syslog", "Linux Servers via Syslog",
-  "AzureActivity", "Azure Subscription Activity Logs",
-  "Heartbeat", "OMS/AMA Agent Status/Health",
-  "SigninLogs", "Azure AD Sign-ins",
-  "OfficeActivity", "Microsoft 365 Audit Logs"
-];
-search *
-| summarize Events = count() by Table = $table
-| join kind=leftouter TableSources on Table
-| project Table, Events, Source
-| order by Events desc
-
-3. Visualization: Table.
-
-
-4. This shows each table, number of events, and potential technologies.
-
-
-
-
----
-
-STEP 5: (Optional) Add a Dropdown Filter for Table Selection
-
-1. Click Add parameter → Add Dropdown.
-
-
-2. Name: SelectedTable.
-
-
-3. Choose Values from query, and paste:
-
-
-
-search *
-| distinct $table
-| project value = $table
-
-4. Click Done.
-
-
-
-
----
-
-STEP 6: Add Detailed View Per Selected Table
-
-1. Add a new Query control.
-
-
-2. Use:
-
-
-
-let Selected = '{SelectedTable}';
-search *
-| where $table == Selected
-| summarize Events = count() by SourceSystem, _ResourceId
-| order by Events desc
-
-3. Visualization: Table or Bar chart – shows who is currently writing to the selected table.
-
-
-
-
----
-
-STEP 7: Save the Workbook
-
-1. At the top: Save → Save As.
-
-
-2. Name it (e.g., “Table Source Mapping Dashboard”).
-
-
-3. Share with your team as needed.
-
-
-
-
----
-
-End Result:
-
-Dynamic list of all tables + mapped to known data sources.
-
-Ability to drill into any table to see current data ingestion.
-
-One central place to track technologies → data tables.
-
-
-
----
-
-Let me know if you'd like a JSON template or help with visual tweaks! Ready for any next steps.
-
-
-
-xxxxxx
-
-
-Super! Hai să integrăm toate tabelele din lista ta în Workbook, astfel încât:
-
-1. Să le poți selecta din dropdown.
-
-
-2. Să vezi ce date conțin (preview live).
-
-
-3. Să vezi cine le populează (tehnologii / surse).
-
-
-
-
----
-
-Planul Workbook-ului:
-
-1. Dropdown complet cu toate tabelele tale.
-
-
-2. La selectarea unui tabel:
-
-Arătăm primele câteva linii de date din acel tabel.
-
-Arătăm cine îl populează (SourceSystem, Computer, DeviceVendor, etc.).
-
-Arătăm sursa tehnologică (bazată pe o mapare statică).
-
-
-
-
-
----
-
-1. Creează Dropdown-ul Complet:
-
-1. Click Add → Add parameter → Dropdown.
-
-
-2. Setează:
-
-Parameter name: SelectedTable
-
-Display name: Select Table
-
-Get data from → Manual values (pentru că avem lista completă)
-
-
-
-3. În câmpul de valori (Manual values), pune fiecare tabel pe 
-
-(Completează lista cu tot ce ai în Notepad – dacă vrei, pot genera lista completă pentru tine, gata formatată.)
-
-4. Save.
-
-
-
-
----
-
-2. Query: Preview live din tabelul selectat
-
-1. Add Query → scrie:
-
-
+2. Query – Preview Data from Selected Table
 
 let Selected = '{SelectedTable}';
 union withsource = TableName *
@@ -283,17 +103,13 @@ union withsource = TableName *
 | project-away TableName
 | take 10
 
-Vei vedea 10 rânduri din tabelul ales, ca preview.
+Shows the first 10 rows from the selected table.
 
 
 
 ---
 
-3. Query: Cine populează acel tabel?
-
-1. Add Query → scrie:
-
-
+3. Query – Identify Who is Populating the Selected Table
 
 let Selected = '{SelectedTable}';
 search *
@@ -301,41 +117,78 @@ search *
 | summarize Events = count() by SourceSystem, Computer, DeviceVendor, DeviceProduct
 | order by Events desc
 
-Îți arată sursa reală: agent, echipament, cloud etc.
+Displays real-time data sources: agent type, device, vendor.
 
 
 
 ---
 
-4. Query: Mapare Statică – sursa tehnologică a tabelului
-
-1. Add Query → scrie:
-
-
+4. Query – Professional Mapping: Table → Technology Source
 
 let TableSources = datatable(Table:string, Source:string)
 [
-  "CommonSecurityLog", "CEF/Syslog – Firewalls, Proxies, WAFs",
-  "DeviceEvents", "Microsoft Defender for Endpoint",
-  "SecurityEvent", "Windows Logs – MMA/AMA Agents",
-  "Syslog", "Linux Servers via Syslog",
-  "AzureActivity", "Azure Subscription Logs",
-  "SigninLogs", "Azure AD Sign-ins",
-  "OfficeActivity", "Microsoft 365 Audit Logs",
-  "AlertInfo", "Sentinel Alert Evidence",
-  "ThreatIntelligenceIndicator", "TI – Threat Intelligence Feeds",
-  "Zscaler_CL", "Zscaler Cloud Firewall Logs",
-  ...
+  "CommonSecurityLog", "CEF/Syslog – Firewalls, Proxies, WAFs (Fortinet, Palo Alto, Cisco)",
+  "DeviceEvents", "Microsoft Defender for Endpoint – Endpoint Telemetry",
+  "DeviceFileEvents", "Microsoft Defender for Endpoint – File Events",
+  "DeviceNetworkEvents", "Microsoft Defender for Endpoint – Network Events",
+  "DeviceProcessEvents", "Microsoft Defender for Endpoint – Process Events",
+  "DeviceRegistryEvents", "Microsoft Defender for Endpoint – Registry Events",
+  "SecurityEvent", "Windows Security Logs – AMA/MMA Agent",
+  "Syslog", "Linux Servers / Network Devices via Syslog",
+  "AzureActivity", "Azure Platform Logs – Subscriptions, RBAC, Resources",
+  "SigninLogs", "Azure Active Directory – User Sign-ins",
+  "OfficeActivity", "Microsoft 365 – Unified Audit Logs",
+  "ThreatIntelligenceIndicator", "Threat Intelligence Feeds – TI Providers",
+  "ThreatIntelIndicators", "Imported TI – Indicators",
+  "SecurityAlert", "Microsoft Defender for Endpoint / Identity / Cloud / Sentinel Alerts",
+  "Zscaler_CL", "Zscaler Cloud Firewall – CEF Integration",
+  "PingFederate_CL", "Ping Identity – Federation Logs via Syslog",
+  "AWSCloudTrail", "Amazon Web Services – CloudTrail Logs",
+  "AuditLogs", "Microsoft Entra ID (Azure AD) – Audit Logs",
+  "Heartbeat", "Agent Health – AMA/MMA Status Monitoring",
+  "AlertInfo", "Microsoft Sentinel – Alert Metadata and Context",
+  "AlertEvidence", "Microsoft Sentinel – Detailed Evidence per Alert",
+  "MicrosoftGraphActivityLogs", "Microsoft Graph – API Calls and Activity",
+  "UrlClickEvents", "Microsoft Defender for Office – SafeLinks Clicks",
+  "EmailEvents", "Microsoft Defender for Office – Email Delivery and Threats",
+  "W3CIISLog", "IIS Web Server Logs – via AMA/MMA Agent",
+  "Zimperium_CL", "Zimperium Mobile Threat Defense – Mobile Events",
+  "BehaviorAnalytics", "Microsoft Sentinel – UEBA and Insider Threat Analytics",
+  "Usage", "Azure Resource Usage – Billing and Consumption",
+  "Health_Data_CL", "Custom Health Data – Ingested via AMA/MMA",
+  "file_data_CL", "Custom File Data – via Data Collector API",
+  "globalprotect_CL", "Palo Alto GlobalProtect VPN – CEF Integration",
+  "traffic_CL", "Network Traffic Logs – Typically from Firewalls or NVA",
+  "userid_CL", "Custom User Identity Logs – via Log Ingestion",
+  "system_CL", "System Logs – Linux/Unix Syslog Source",
+  "threat_log_CL", "Threat Intelligence Logs – Custom or Imported"
 ];
 let Selected = '{SelectedTable}';
 TableSources
 | where Table == Selected
 
-Arată ce tehnologie poate popula tabelul (din mapare statică).
+
+---
+
+Workbook Flow:
+
+1. Select Table from Dropdown.
+
+
+2. See live sample data from that table.
+
+
+3. View who is currently writing to it (real data).
+
+
+4. View which technology typically populates it (professional mapping).
+
 
 
 
 ---
 
-Vrei să-ți dau lista completă cu tabelele tale în format gata de pus în Workbook? Sau vrei să continui să o introduci manual? Pot genera automat!
+Ready to import and build your full professional dashboard!
+
+Need more enhancements like charts or templates? Let me know!
 
