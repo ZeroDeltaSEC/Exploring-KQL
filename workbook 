@@ -192,3 +192,16 @@ Ready to import and build your full professional dashboard!
 
 Need more enhancements like charts or templates? Let me know!
 
+xxxxxxx
+
+let Selected = '{SelectedTable}';
+search *
+| where $table == Selected
+| extend 
+    SourceSystem = iif(isnull(SourceSystem), "N/A", tostring(SourceSystem)),
+    Computer = iif(column_ifexists("Computer", "") == "", "N/A", tostring(Computer)),
+    DeviceVendor = iif(column_ifexists("DeviceVendor", "") == "", "N/A", tostring(DeviceVendor)),
+    DeviceProduct = iif(column_ifexists("DeviceProduct", "") == "", "N/A", tostring(DeviceProduct)),
+    _ResourceId = iif(column_ifexists("_ResourceId", "") == "", "N/A", tostring(_ResourceId))
+| summarize Events = count() by SourceSystem, Computer, DeviceVendor, DeviceProduct, _ResourceId
+| order by Events desc
