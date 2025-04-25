@@ -48,3 +48,19 @@ union isfuzzy=true
     SecurityEvent
 | where $table == '{selectedTable}'
 | take 10
+
+xxxxxxx
+
+{TableName}
+| summarize      total = count(),
+                 vendors = make_set(DeviceVendor, 5),
+                 products = make_set(DeviceProduct, 5),
+                 sources = make_set(SourceSystem, 5)
+let TableConnector = datatable(TableName:string, Connector:string)
+[
+  "AADManagedIdentitySignInLogs", "Azure AD (Entra ID) diagnostics",
+  "AWSCloudTrail",                "Amazon Web Services – S3 / CloudTrail connector",
+  ...
+];
+TableConnector
+| where TableName == '{TableName}'
