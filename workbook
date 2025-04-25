@@ -208,3 +208,24 @@ let targetVendor = '{Vendor}';      // value chosen in the Vendor parameter
     )
 | where tolower(Vendor) == tolower(targetVendor)  // case-insensitive match
 | take 10
+
+
+xxxxxx
+
+let targetVendor = trim(" ", '{Vendor}');
+{TableName}
+| extend Vendor = coalesce(
+        column_ifexists("DeviceVendor" , ""),
+        column_ifexists("Vendor"       , ""),
+        column_ifexists("VendorName"   , ""),
+        column_ifexists("DeviceProduct", "")
+    )
+| where
+        isempty(targetVendor)                                   // no vendor selected – show all
+     or (
+            // table HAS a vendor column – filter by it
+            Vendor != "" and
+            (   tolower(Vendor) == tolower(targetVendor)
+             or Vendor contains_cs targetVendor )
+        )
+| take 10
