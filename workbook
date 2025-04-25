@@ -78,3 +78,92 @@ xxxxxxxx
       products = make_set(DeviceProduct, 5),
       sources  = make_set(SourceSystem,  5)
 
+
+xxxxxxxxxx
+
+
+Below is a drop-in extension for the Workbook we already started so you can discover data by product / vendor name – e.g. Vectra, CrowdStrike, Agari, Zscaler – and immediately see which tables they are writing to (plus quick samples).
+
+1 ️⃣ Dynamic parameter VendorName
+kusto
+Copy
+Edit
+search *
+| extend Vendor =
+        coalesce(                     // pick the first non-empty
+            column_ifexists("DeviceVendor"),
+            column_ifexists("Vendor"),
+            column_ifexists("VendorName"),
+            column_ifexists("DeviceProduct"))
+| where isnotempty(Vendor)
+| summarize by Vendor
+| order by Vendor asc
+Type: Dynamic (KQL)
+
+Alias: Vendor
+
+isScopeVar = true – so other queries can read it.
+
+Optional: add a “Show only where Vendor appears at least N times” clause (… | summarize c=count() by Vendor | where c > 100).
+
+2 ️⃣ Which tables does this vendor write?
+kusto
+Copy
+Edit
+let targetVendor = '{Vendor}';          // value chosen in the parameter above
+search *
+| extend Vendor =
+        coalesce(column_ifexists("DeviceVendor"),
+                 column_ifexists("Vendor"),
+                 column_ifexists("VendorName"),
+                 column_ifexists("DeviceProduct"))
+| where tostring(Vendor) == targetVendor
+| summarize Rows = count() by TableName = $table
+| order by Rows desc
+Visualization tip: Bar chart (TableName on Y, Rows on X) helps you spot the “heavy” tables at a glance.
+
+3 ️⃣ “Show me 10 example rows” from a vendor-table pair
+Add another query control that is bound to both parameters (Vendor and the table list from § 2):
+
+kusto
+Copy
+Edit
+let targetVendor = '{Vendor}';
+{TableName}
+| where coalesce( column_ifexists("DeviceVendor"),
+                  column_ifexists("Vendor"),
+                  column_ifexists("VendorName"),
+                  column_ifexists("DeviceProduct")) == targetVendor
+| take 10
+4 ️⃣ What if the logs don’t carry a vendor field?
+Some feeds (especially custom _CL tables) omit DeviceVendor.
+Use one (or all) of these fall-backs:
+
+
+Heuristic	Example
+Table name pattern – many custom tables embed the product:	where TableName startswith "vectra_"
+SourceSystem – Syslog/CEF via AMA shows “OpsManager”:	`
+Message content (string search):	`search "X-Agari"
+Just append the heuristic to the search * block above.
+
+5 ️⃣ Putting it together – minimal workbook flow
+VendorName (Dynamic parameter) – query from § 1.
+
+TablesByVendor (Query display) – query from § 2 → list or bar chart.
+
+SampleRows (Query display) – query from § 3, visible when a table is selected.
+
+(optional) Lookup panel – static datatable() that maps well-known vendors to their recommended Sentinel connector, docs URL, incident templates, etc.
+
+Example usage
+Pick CrowdStrike → TablesByVendor shows CommonSecurityLog, globalprotect_CL (if you ingest PAN with CrowdStrike tech-add-on), row counts, etc. Click CommonSecurityLog → SampleRows instantly lists ten CS Falcon events.
+
+Quick sanity checks
+No results? – verify that the vendor label really exists in that feed (open raw data once).
+
+Multiple spellings? – normalise with tolower(Vendor) or use a small mapping table ("crowdstrike","CrowdStrike").
+
+Performance – prefix each search * with a time filter (| where TimeGenerated >= ago(14d)) so the control stays snappy.
+
+Give it a try and tell me where you’d like more depth – regex tricks, automatic vendor-to-connector lookup, or schema-aware queries for a specific product!
+
