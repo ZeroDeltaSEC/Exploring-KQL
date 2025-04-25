@@ -1,0 +1,208 @@
+Sure! Here's a detailed step-by-step guide in English to help you build a Workbook in Microsoft Sentinel that:
+
+1. Lists all $tables with event counts.
+
+
+2. Maps each table to potential data sources / technologies.
+
+
+3. Optionally allows filtering and drilling into who is writing to each table.
+
+
+
+
+---
+
+Step-by-Step: Build a Workbook for Table Sources
+
+
+---
+
+STEP 1: Open Microsoft Sentinel and Create a New Workbook
+
+1. Go to Azure Portal → Microsoft Sentinel → Your Workspace.
+
+
+2. In the left menu: Workbooks.
+
+
+3. Click + New.
+
+
+
+
+---
+
+STEP 2: Create a Query for All $tables
+
+1. Click Add query.
+
+
+2. Select Data source: Logs.
+
+
+3. Paste this query:
+
+
+
+search *
+| summarize Events = count() by Table = $table
+| order by Events desc
+
+4. Below the query:
+
+Visualization: Table.
+
+Check Set this query as a parameter (name it: TableList).
+
+
+
+5. Click Done Editing.
+
+
+
+
+---
+
+STEP 3: Create a Static Mapping of Table to Technology Source
+
+1. Add a new Query control.
+
+
+2. Use this query:
+
+
+
+let TableSources = datatable(Table:string, Source:string)
+[
+  "CommonSecurityLog", "CEF/Syslog – Firewalls, Proxies, WAFs",
+  "DeviceEvents", "Microsoft Defender for Endpoint",
+  "SecurityEvent", "Windows Logs – MMA/AMA Agents",
+  "Syslog", "Linux Servers via Syslog",
+  "AzureActivity", "Azure Subscription Activity Logs",
+  "Heartbeat", "OMS/AMA Agent Status/Health",
+  "SigninLogs", "Azure AD Sign-ins",
+  "OfficeActivity", "Microsoft 365 Audit Logs"
+];
+TableSources
+
+3. Visualization: Table.
+
+
+4. Check Set as Parameter – name it: SourceMap.
+
+
+
+
+---
+
+STEP 4: Join Live Table Data with Static Source Mapping
+
+1. Add a new Query control.
+
+
+2. Use this query:
+
+
+
+let TableSources = datatable(Table:string, Source:string)
+[
+  "CommonSecurityLog", "CEF/Syslog – Firewalls, Proxies, WAFs",
+  "DeviceEvents", "Microsoft Defender for Endpoint",
+  "SecurityEvent", "Windows Logs – MMA/AMA Agents",
+  "Syslog", "Linux Servers via Syslog",
+  "AzureActivity", "Azure Subscription Activity Logs",
+  "Heartbeat", "OMS/AMA Agent Status/Health",
+  "SigninLogs", "Azure AD Sign-ins",
+  "OfficeActivity", "Microsoft 365 Audit Logs"
+];
+search *
+| summarize Events = count() by Table = $table
+| join kind=leftouter TableSources on Table
+| project Table, Events, Source
+| order by Events desc
+
+3. Visualization: Table.
+
+
+4. This shows each table, number of events, and potential technologies.
+
+
+
+
+---
+
+STEP 5: (Optional) Add a Dropdown Filter for Table Selection
+
+1. Click Add parameter → Add Dropdown.
+
+
+2. Name: SelectedTable.
+
+
+3. Choose Values from query, and paste:
+
+
+
+search *
+| distinct $table
+| project value = $table
+
+4. Click Done.
+
+
+
+
+---
+
+STEP 6: Add Detailed View Per Selected Table
+
+1. Add a new Query control.
+
+
+2. Use:
+
+
+
+let Selected = '{SelectedTable}';
+search *
+| where $table == Selected
+| summarize Events = count() by SourceSystem, _ResourceId
+| order by Events desc
+
+3. Visualization: Table or Bar chart – shows who is currently writing to the selected table.
+
+
+
+
+---
+
+STEP 7: Save the Workbook
+
+1. At the top: Save → Save As.
+
+
+2. Name it (e.g., “Table Source Mapping Dashboard”).
+
+
+3. Share with your team as needed.
+
+
+
+
+---
+
+End Result:
+
+Dynamic list of all tables + mapped to known data sources.
+
+Ability to drill into any table to see current data ingestion.
+
+One central place to track technologies → data tables.
+
+
+
+---
+
+Let me know if you'd like a JSON template or help with visual tweaks! Ready for any next steps.
+
