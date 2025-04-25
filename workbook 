@@ -206,3 +206,136 @@ One central place to track technologies → data tables.
 
 Let me know if you'd like a JSON template or help with visual tweaks! Ready for any next steps.
 
+
+
+xxxxxx
+
+
+Super! Hai să integrăm toate tabelele din lista ta în Workbook, astfel încât:
+
+1. Să le poți selecta din dropdown.
+
+
+2. Să vezi ce date conțin (preview live).
+
+
+3. Să vezi cine le populează (tehnologii / surse).
+
+
+
+
+---
+
+Planul Workbook-ului:
+
+1. Dropdown complet cu toate tabelele tale.
+
+
+2. La selectarea unui tabel:
+
+Arătăm primele câteva linii de date din acel tabel.
+
+Arătăm cine îl populează (SourceSystem, Computer, DeviceVendor, etc.).
+
+Arătăm sursa tehnologică (bazată pe o mapare statică).
+
+
+
+
+
+---
+
+1. Creează Dropdown-ul Complet:
+
+1. Click Add → Add parameter → Dropdown.
+
+
+2. Setează:
+
+Parameter name: SelectedTable
+
+Display name: Select Table
+
+Get data from → Manual values (pentru că avem lista completă)
+
+
+
+3. În câmpul de valori (Manual values), pune fiecare tabel pe 
+
+(Completează lista cu tot ce ai în Notepad – dacă vrei, pot genera lista completă pentru tine, gata formatată.)
+
+4. Save.
+
+
+
+
+---
+
+2. Query: Preview live din tabelul selectat
+
+1. Add Query → scrie:
+
+
+
+let Selected = '{SelectedTable}';
+union withsource = TableName *
+| where TableName == Selected
+| project-away TableName
+| take 10
+
+Vei vedea 10 rânduri din tabelul ales, ca preview.
+
+
+
+---
+
+3. Query: Cine populează acel tabel?
+
+1. Add Query → scrie:
+
+
+
+let Selected = '{SelectedTable}';
+search *
+| where $table == Selected
+| summarize Events = count() by SourceSystem, Computer, DeviceVendor, DeviceProduct
+| order by Events desc
+
+Îți arată sursa reală: agent, echipament, cloud etc.
+
+
+
+---
+
+4. Query: Mapare Statică – sursa tehnologică a tabelului
+
+1. Add Query → scrie:
+
+
+
+let TableSources = datatable(Table:string, Source:string)
+[
+  "CommonSecurityLog", "CEF/Syslog – Firewalls, Proxies, WAFs",
+  "DeviceEvents", "Microsoft Defender for Endpoint",
+  "SecurityEvent", "Windows Logs – MMA/AMA Agents",
+  "Syslog", "Linux Servers via Syslog",
+  "AzureActivity", "Azure Subscription Logs",
+  "SigninLogs", "Azure AD Sign-ins",
+  "OfficeActivity", "Microsoft 365 Audit Logs",
+  "AlertInfo", "Sentinel Alert Evidence",
+  "ThreatIntelligenceIndicator", "TI – Threat Intelligence Feeds",
+  "Zscaler_CL", "Zscaler Cloud Firewall Logs",
+  ...
+];
+let Selected = '{SelectedTable}';
+TableSources
+| where Table == Selected
+
+Arată ce tehnologie poate popula tabelul (din mapare statică).
+
+
+
+---
+
+Vrei să-ți dau lista completă cu tabelele tale în format gata de pus în Workbook? Sau vrei să continui să o introduci manual? Pot genera automat!
+
