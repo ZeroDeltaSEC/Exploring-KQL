@@ -37,3 +37,14 @@ union withsource = _TableSource *
 | project ColumnNames = bag_keys(todynamic(pack_all()))
 | mv-expand ColumnNames
 | summarize ColumnList = strcat_array(make_list(tostring(ColumnNames)), " ")
+
+xxxxxx
+
+union isfuzzy=true
+    Heartbeat,
+    Perf,
+    AzureDiagnostics,
+    Syslog,
+    SecurityEvent
+| where $table == '{selectedTable}'
+| take 10
