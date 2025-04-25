@@ -179,3 +179,18 @@ search *
 | where isnotempty(Vendor)
 | summarize by Vendor
 | order by Vendor asc
+
+
+xxxxxxxx
+
+let targetVendor = '{Vendor}';        // value picked in the Vendor parameter
+search *
+| extend Vendor = coalesce(
+        column_ifexists("DeviceVendor",  ""),       // add ""
+        column_ifexists("Vendor",        ""),
+        column_ifexists("VendorName",    ""),
+        column_ifexists("DeviceProduct", "")
+    )
+| where tolower(Vendor) == tolower(targetVendor)    // case-insensitive match
+| summarize Rows = count() by TableName = $table
+| order by Rows desc
