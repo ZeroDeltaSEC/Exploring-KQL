@@ -1,4 +1,4 @@
-
+6
 let Selected = '{TableName}';
 union withsource = _TableSource *
 | where _TableSource == Selected
@@ -64,3 +64,17 @@ let TableConnector = datatable(TableName:string, Connector:string)
 ];
 TableConnector
 | where TableName == '{TableName}'
+
+
+xxxxxxxx
+
+{TableName}
+| extend DeviceVendor  = column_ifexists("DeviceVendor",  "N/A")
+| extend DeviceProduct = column_ifexists("DeviceProduct", "N/A")
+| extend SourceSystem  = column_ifexists("SourceSystem",  "N/A")
+| summarize
+      total    = count(),
+      vendors  = make_set(DeviceVendor,  5),
+      products = make_set(DeviceProduct, 5),
+      sources  = make_set(SourceSystem,  5)
+
