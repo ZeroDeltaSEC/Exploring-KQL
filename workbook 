@@ -27,3 +27,13 @@ union withsource = _TableSource *
 | project ColumnNames = bag_keys(todynamic(pack_all()))
 | mv-expand ColumnNames
 | summarize by ColumnName = tostring(ColumnNames)
+
+xxxxxxx
+
+let Selected = '{TableName}';
+union withsource = _TableSource *
+| where _TableSource == Selected
+| take 1
+| project ColumnNames = bag_keys(todynamic(pack_all()))
+| mv-expand ColumnNames
+| summarize ColumnList = strcat_array(make_list(tostring(ColumnNames)), " ")
