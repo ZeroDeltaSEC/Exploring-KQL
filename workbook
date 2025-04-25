@@ -194,3 +194,17 @@ search *
 | where tolower(Vendor) == tolower(targetVendor)    // case-insensitive match
 | summarize Rows = count() by TableName = $table
 | order by Rows desc
+
+
+xxxxxx
+
+let targetVendor = '{Vendor}';      // value chosen in the Vendor parameter
+{TableName}
+| extend Vendor = coalesce(                       // build a unified Vendor field
+        column_ifexists("DeviceVendor",  ""),
+        column_ifexists("Vendor",        ""),
+        column_ifexists("VendorName",    ""),
+        column_ifexists("DeviceProduct", "")
+    )
+| where tolower(Vendor) == tolower(targetVendor)  // case-insensitive match
+| take 10
