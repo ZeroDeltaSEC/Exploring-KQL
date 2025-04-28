@@ -1,4 +1,49 @@
-6
+
+{TableName}
+| extend DeviceVendor  = column_ifexists("DeviceVendor",  "N/A")
+| extend DeviceProduct = column_ifexists("DeviceProduct", "N/A")
+| extend SourceSystem  = column_ifexists("SourceSystem",  "N/A")
+| summarize
+      total    = count(),
+      vendors  = make_set(DeviceVendor,  5),
+      products = make_set(DeviceProduct, 5),
+      sources  = make_set(SourceSystem,  5)
+
+xxxxxc
+
+search *
+| extend Vendor = coalesce(                         // returnează primul non-empty
+        column_ifexists("DeviceVendor",  ""),       // 2-nd arg = default
+        column_ifexists("Vendor",        ""),
+        column_ifexists("VendorName",    ""),
+        column_ifexists("DeviceProduct", "")
+    )
+| where isnotempty(Vendor)
+| summarize by Vendor
+| order by Vendor asc
+
+xxxxxx
+
+let targetVendor = '{Vendor}';        // value picked in the Vendor parameter
+search *
+| extend Vendor = coalesce(
+        column_ifexists("DeviceVendor",  ""),       // add ""
+        column_ifexists("Vendor",        ""),
+        column_ifexists("VendorName",    ""),
+        column_ifexists("DeviceProduct", "")
+    )
+| where tolower(Vendor) == tolower(targetVendor)    // case-insensitive match
+| summarize Rows = count() by TableName = $table
+| order by Rows desc
+
+
+xxxxxx
+
+
+
+
+
+xxxxx
 let Selected = '{TableName}';
 union withsource = _TableSource *
 | where _TableSource == Selected
