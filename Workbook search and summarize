@@ -1,0 +1,6 @@
+let searchTerm = tolower('{searchText}');
+union withsource=TableName *
+| where isnotempty(searchTerm)
+| where tostring(pack_all()) contains searchTerm
+| summarize Count=count() by TableName
+| sort by Count desc
