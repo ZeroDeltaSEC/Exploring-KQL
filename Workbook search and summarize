@@ -11,3 +11,9 @@ union withsource=TableName *
 | where isnotempty(searchText) and tostring(pack_all()) contains searchText
 | summarize Count = count() by TableName
 | order by Count desc
+
+let searchText = tolower("{Search}");
+union withsource=_SourceTable *
+| where isnotempty(searchText) and tostring(pack_all()) contains searchText
+| summarize Count = count() by _SourceTable
+| order by Count desc
