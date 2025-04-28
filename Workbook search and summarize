@@ -143,3 +143,19 @@ union withsource=_SourceTable
 | take 10000
 | summarize Count = count(), LastSeen = max(TimeGenerated) by _SourceTable
 | order by Count desc
+
+
+xxxxxxx
+
+
+let searchText = tolower("{Search}");
+union withsource=_SourceTable 
+    SecurityEvent,
+    SigninLogs,
+    SecurityAlert,
+    Syslog
+| where isnotempty(searchText)
+| where tostring(Account) contains searchText or tostring(Message) contains searchText or tostring(IpAddress) contains searchText
+| take 1000
+| summarize Count = count(), LastSeen = max(TimeGenerated) by _SourceTable
+| order by Count desc
