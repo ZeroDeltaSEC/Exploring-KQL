@@ -1,4 +1,14 @@
 
+search *
+| summarize by TableName = $table       //  $table = numele tabelului găsit de operatorul search
+| order by TableName asc
+
+
+xxx
+
+
+
+
 {TableName}
 | extend DeviceVendor  = column_ifexists("DeviceVendor",  "N/A")
 | extend DeviceProduct = column_ifexists("DeviceProduct", "N/A")
