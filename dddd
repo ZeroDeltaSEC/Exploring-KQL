@@ -1,0 +1,3 @@
+runscript -Raw=```for dir in /home /etc /var /opt /tmp /root; do
+    ls -la "$dir" 2>/dev/null | grep -i ppv3
+done```
