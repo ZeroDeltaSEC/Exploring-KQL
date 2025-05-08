@@ -1,0 +1,127 @@
+# Google Dorking Cheat Sheet for Pentesting
+
+Google Dorking uses advanced search operators to find sensitive information, exposed files, and potential vulnerabilities on websites. Use responsibly and only on authorized targets.
+
+---
+
+## Basic Operators
+
+- `site:`  
+  Limit search to a specific domain or site.  
+  Example: `site:example.com`
+
+- `filetype:` or `ext:`  
+  Search for files by extension.  
+  Example: `filetype:pdf`, `ext:sql`
+
+- `inurl:`  
+  Search for keywords in the URL.  
+  Example: `inurl:admin`
+
+- `intitle:`  
+  Search for keywords in the page title.  
+  Example: `intitle:"login"`
+
+- `intext:`  
+  Search for keywords in the page content.  
+  Example: `intext:"password"`
+
+- `cache:`  
+  Show Google's cached version of a page.
+
+- `link:`  
+  Show pages linking to a specific URL.
+
+- `related:`  
+  Show sites similar to a given site.
+
+- `allinurl:`  
+  All keywords must appear in the URL.
+
+- `allintitle:`  
+  All keywords must appear in the title.
+
+- `allintext:`  
+  All keywords must appear in the text.
+
+- `allinanchor:`  
+  All keywords must appear in anchor text of links.
+
+- `-` (minus)  
+  Exclude a keyword from search.  
+  Example: `site:example.com -inurl:blog`
+
+- `OR`  
+  Search for either keyword.  
+  Example: `inurl:admin OR inurl:login`
+
+- `""` (quotes)  
+  Search for exact phrase.
+
+---
+
+## Advanced and Useful Dorks for Pentesting
+
+- Find backup or configuration files:  
+  `site:example.com filetype:bak OR filetype:old OR filetype:backup`
+
+- Find exposed SQL files:  
+  `site:example.com filetype:sql`
+
+- Find login pages:  
+  `site:example.com intitle:"login" OR inurl:login`
+
+- Find open directories (index of):  
+  `site:example.com intitle:"index of"`
+
+- Find files containing passwords or secrets:  
+  `site:example.com intext:"password" OR intext:"passwd" OR intext:"secret"`
+
+- Find log files:  
+  `site:example.com filetype:log`
+
+- Find error pages revealing information:  
+  `site:example.com intext:"error" OR intext:"exception"`
+
+- Find Excel or CSV files with sensitive data:  
+  `site:example.com filetype:xls OR filetype:xlsx OR filetype:csv`
+
+- Find Word or PDF documents with internal info:  
+  `site:example.com filetype:doc OR filetype:docx OR filetype:pdf`
+
+- Find pages with forms (potentially vulnerable):  
+  `site:example.com inurl:"form" OR inurl:"submit"`
+
+- Find pages with potential XSS vectors (simple example):  
+  `site:example.com inurl:"search="`
+
+---
+
+## Useful Combinations
+
+- Find configuration files in specific URLs:  
+  `site:example.com inurl:config filetype:xml OR filetype:ini`
+
+- Find backup files containing the word "password":  
+  `site:example.com filetype:bak intext:"password"`
+
+- Exclude certain subdomains or directories:  
+  `site:example.com -site:blog.example.com`
+
+---
+
+## Additional Tips
+
+- Use `AROUND(X)` to find two keywords within X words of each other:  
+  Example: `intext:"username" AROUND(5) "password"`
+
+- Look for exposed sensitive files like `.htaccess`, `.git`, `.env`:  
+  `site:example.com filetype:env`
+
+---
+
+**Note:** Always have explicit permission before performing any security testing or information gathering on websites.
+
+---
+
+If you want, I can help you create a ready-to-use GitHub README file or a text file with these dorks. Would you like that?
