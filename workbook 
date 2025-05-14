@@ -1,0 +1,49 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "6bdfb723-b46a-4c93-a048-dcec4051b0e4",
+            "version": "KqlParameterItem/1.0",
+            "name": "Search",
+            "type": 1,
+            "typeSettings": {
+              "isSearchBox": true
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": "sasasdaa"
+          }
+        ]
+      },
+      "name": "parameters - 0",
+      "style": "pills",
+      "queryType": 0,
+      "resourceType": "microsoft.operationalinsights/workspaces"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "print Param = \"$Search\"",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "query - 1"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/b43324a0-f15d-4b9f-a1a8-e5df528239b3/resourcegroups/resourcegroup_sentinel_prod/providers/microsoft.operationalinsights/workspaces/sentinel-loganalytics-prod"
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
