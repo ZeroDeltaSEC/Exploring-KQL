@@ -605,3 +605,34 @@ SecurityAlert
     Description,
     ["View Details"] = strcat("View in ", platform, ": [", AlertName, "](", link, ")")
 | order by Severity asc
+
+
+xxxxxxxxcxcccc
+
+let searchKeyword = "{SearchText}";
+let hasKeyword = isnotempty(searchKeyword);
+
+SecurityAlert
+| extend platform = case(
+    ProductName == "Microsoft Defender for Endpoint" or ProductName == "Microsoft 365 Defender", "Defender",
+    "Sentinel"
+)
+| extend severity = case(
+    AlertSeverity == "High", "high",
+    AlertSeverity == "Medium", "medium",
+    AlertSeverity == "Low", "low",
+    "medium"
+)
+| extend link = iff(
+    platform == "Defender",
+    strcat("https://security.microsoft.com/alerts/", SystemAlertId),
+    strcat("https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/AlertBlade/alertId/", SystemAlertId)
+)
+| where not(hasKeyword) or AlertName contains searchKeyword or Description contains searchKeyword
+| project
+    Severity = severity,
+    Platform = platform,
+    Title = AlertName,
+    Description,
+    ["View Details"] = strcat("View in ", platform, ": [", AlertName, "](", link, ")")
+| order by Severity asc
