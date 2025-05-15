@@ -636,3 +636,33 @@ SecurityAlert
     Description,
     ["View Details"] = strcat("View in ", platform, ": [", AlertName, "](", link, ")")
 | order by Severity asc
+
+
+xxxxxxxxxxx
+
+let searchKeyword = '{SearchText}';
+let hasKeyword = isnotempty(searchKeyword);
+
+SecurityAlert
+| extend platform = case(
+    ProductName has "Defender", "Defender",
+    "Sentinel"
+)
+| where not(hasKeyword) or (
+    AlertName contains searchKeyword
+    or Description contains searchKeyword
+    or CompromisedEntity contains searchKeyword
+    or ExtendedProperties contains searchKeyword
+    or RemediationSteps contains searchKeyword
+)
+| project
+    TimeGenerated,
+    AlertName,
+    Description,
+    CompromisedEntity,
+    ProductName,
+    platform,
+    AlertSeverity,
+    AlertLink,
+    ["View Details"] = strcat("View: [", AlertName, "](", AlertLink, ")")
+| order by TimeGenerated desc
