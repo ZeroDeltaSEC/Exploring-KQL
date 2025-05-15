@@ -1,4 +1,4 @@
-import { useState } from 'react';
+6import { useState } from 'react';
 
 export default function IncidentSearchTool() {
   const [keyword, setKeyword] = useState('');
@@ -444,3 +444,133 @@ For each query, click on the "Style" button (shown in your screenshot) and:
 1. We're using native Azure Workbook parameters instead of custom JavaScript
 2. The search functionality is implemented using KQL query parameters 
 3. We're using the grid visualization which
+
+
+
+.........xxxxxx....
+
+I understand you want the workbook to automatically search both Microsoft Defender and Microsoft Sentinel without needing to select a platform. Let me simplify the approach to meet this requirement.
+
+## Simplified Implementation for Both Platforms
+
+### Step 1: Create a Parameter for Search Keyword Only
+
+1. In your workbook, click "Add parameter"
+2. Configure a text parameter:
+   - Name: `SearchKeyword`
+   - Display name: "Search Keyword"
+   - Required: No
+   - Get data from: None
+
+### Step 2: Create a Combined Query for Both Platforms
+
+1. Click "Add query" in your workbook
+2. Enter this KQL query that searches both platforms at once:
+
+```
+let searchKeyword = "{SearchKeyword}";
+let hasKeyword = isnotempty(searchKeyword);
+
+// Get all incidents from both Defender and Sentinel
+SecurityIncident
+| extend platform = case(
+    ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender", "Defender",
+    "Sentinel"
+)
+| extend severity = case(
+    Severity == "High", "high",
+    Severity == "Medium", "medium", 
+    Severity == "Low", "low",
+    Severity == "Critical", "critical",
+    "medium"
+)
+| extend link = iff(
+    platform == "Defender",
+    strcat("https://security.microsoft.com/incidents/", IncidentId),
+    strcat("https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/", IncidentId)
+)
+// Only filter by keyword if one was provided
+| where not(hasKeyword) or Title contains searchKeyword or Description contains searchKeyword
+// Project the fields we want to display
+| project 
+    Severity = severity,
+    Platform = platform,
+    Title = Title,
+    Description = Description,
+    ["View Details"] = strcat("['View in ", platform, "'](", link, ")")
+| order by Severity asc
+```
+
+3. Set visualization to "Grid"
+4. Click "Style" and set:
+   - Title: "Security Incidents Search Results"
+   - Set conditional formatting for the Severity column
+5. Select "Run query"
+
+### Step 3: Add "All Clear" Message Query
+
+1. Click "Add query" in your workbook
+2. Enter this KQL query:
+
+```
+let searchKeyword = "{SearchKeyword}";
+let hasKeyword = isnotempty(searchKeyword);
+
+// Only run if a search keyword was provided
+if (hasKeyword) {
+    // Count incidents that match the search
+    let matchCount = 
+        SecurityIncident
+        | where Title contains searchKeyword or Description contains searchKeyword
+        | count;
+    
+    // Return "All Clear" message if no matches
+    if (matchCount == 0) {
+        print Message = "✓ All Clear! No incidents found matching your search criteria."
+    } else {
+        print Message = "" | where 1 == 0  // Return empty result
+    }
+} else {
+    print Message = "" | where 1 == 0  // Return empty result if no keyword
+}
+```
+
+3. Set visualization to "Text"
+4. Set format:
+   - Text size: Large
+   - Text color: Green
+5. Set conditional visibility: `isnotempty(SearchKeyword)`
+6. Click "Run query"
+
+### Step 4: Add Instructions Text Block
+
+1. Click "Add text" in your workbook
+2. Add a simplified description:
+
+```
+## Microsoft Security Incident Search Tool
+
+This workbook searches across both Microsoft Defender and Microsoft Sentinel platforms for security incidents matching your keyword.
+
+1. Enter a search keyword in the "Search Keyword" field
+2. Click "Run queries" at the top of the page to execute the search
+3. Results will display below with links to view incidents in their native portals
+4. If no matching incidents are found, an "All Clear" message will be displayed
+```
+
+### Step 5: Save and Test the Workbook
+
+1. Click "Save" on the workbook editor
+2. Enter a name for your workbook (e.g., "Security Incident Combined Search Tool")
+3. Click "Apply" to save the workbook
+
+## How This Works
+
+1. This simplified version searches both platforms automatically without requiring a platform selection
+2. The main query merges results from both Defender and Sentinel, clearly indicating which platform each incident comes from
+3. Links are created dynamically based on the platform
+4. The "All Clear" message only shows when a keyword is entered and no matching incidents are found
+
+This approach is more streamlined and better meets your requirement to automatically search both platforms without needing to make a selection.
+
+Is there anything else you'd like me to adjust about this implementation?
