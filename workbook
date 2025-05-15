@@ -247,3 +247,200 @@ export default function IncidentSearchTool() {
     </div>
   );
 }
+
+
+..............
+
+I see you're using the Azure Log Analytics / Sentinel query interface, which has different visualization options compared to what I initially described. Let me adjust the approach to work with the interface shown in your screenshot.
+
+For this environment, we'll need to modify our implementation to use KQL queries that output the data we need and create the search functionality within the constraints of Azure Workbooks.
+
+Here's how to implement the workbook in this specific interface:
+
+## Step-by-Step Implementation for Log Analytics Workbook
+
+### Step 1: Create a Parameter for Search Keyword
+
+1. In your workbook, click "Add parameter"
+2. Configure a text parameter:
+   - Name: `SearchKeyword`
+   - Display name: "Search Keyword"
+   - Required: No
+   - Get data from: None
+
+### Step 2: Create a Parameter for Platform Selection
+
+1. Click "Add parameter"
+2. Configure a dropdown parameter:
+   - Name: `Platform`
+   - Display name: "Platform"
+   - Required: Yes
+   - Get data from: JSON
+   - JSON input:
+     ```json
+     [
+       {"value": "both", "label": "Both Platforms"},
+       {"value": "defender", "label": "Defender Only"},
+       {"value": "sentinel", "label": "Sentinel Only"}
+     ]
+     ```
+   - Select default value: "both"
+
+### Step 3: Create the Microsoft Defender Incidents Query
+
+1. Click "Add query" in your workbook
+2. Enter this KQL query:
+
+```
+// Only execute if Platform parameter is "both" or "defender"
+let platformFilter = "{Platform}";
+let searchKeyword = "{SearchKeyword}";
+let runQuery = platformFilter == "both" || platformFilter == "defender";
+SecurityIncident
+| where runQuery
+| where ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender"
+| extend severity = case(
+    Severity == "High", "high",
+    Severity == "Medium", "medium", 
+    Severity == "Low", "low",
+    Severity == "Critical", "critical",
+    "medium"
+)
+| extend platform = "defender"
+| extend link = strcat("https://security.microsoft.com/incidents/", IncidentId)
+| where searchKeyword == "" or Title contains searchKeyword or Description contains searchKeyword
+| project 
+    Severity = severity,
+    Platform = platform,
+    Title = Title,
+    Description = Description,
+    ["View Details"] = strcat("['View in Defender'](", link, ")")
+| order by Severity asc
+```
+
+3. Set visualization to "Grid"
+4. Select "Run query"
+
+### Step 4: Create the Microsoft Sentinel Incidents Query
+
+1. Click "Add query" in your workbook
+2. Enter this KQL query:
+
+```
+// Only execute if Platform parameter is "both" or "sentinel"
+let platformFilter = "{Platform}";
+let searchKeyword = "{SearchKeyword}";
+let runQuery = platformFilter == "both" || platformFilter == "sentinel";
+SecurityIncident
+| where runQuery
+| where not(ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender")
+| extend severity = case(
+    Severity == "High", "high",
+    Severity == "Medium", "medium", 
+    Severity == "Low", "low",
+    Severity == "Critical", "critical",
+    "medium"
+)
+| extend platform = "sentinel"
+| extend link = strcat("https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/", IncidentId)
+| where searchKeyword == "" or Title contains searchKeyword or Description contains searchKeyword
+| project 
+    Severity = severity,
+    Platform = platform,
+    Title = Title,
+    Description = Description,
+    ["View Details"] = strcat("['View in Sentinel'](", link, ")")
+| order by Severity asc
+```
+
+3. Set visualization to "Grid"
+4. Select "Run query"
+
+### Step 5: Add a Text Query for "All Clear" Message
+
+1. Click "Add query" in your workbook
+2. Enter this KQL query:
+
+```
+// This query checks if both the Defender and Sentinel queries returned results
+let platformFilter = "{Platform}";
+let searchKeyword = "{SearchKeyword}";
+
+// Only run if a search keyword was provided
+let hasKeyword = searchKeyword != "";
+
+// Get Defender results count
+let defenderCount = 
+    SecurityIncident
+    | where (platformFilter == "both" || platformFilter == "defender")
+    | where ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender"
+    | where searchKeyword == "" or Title contains searchKeyword or Description contains searchKeyword
+    | count;
+
+// Get Sentinel results count
+let sentinelCount = 
+    SecurityIncident
+    | where (platformFilter == "both" || platformFilter == "sentinel")
+    | where not(ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender")
+    | where searchKeyword == "" or Title contains searchKeyword or Description contains searchKeyword
+    | count;
+
+// Check if we have any results
+let totalCount = 
+    defenderCount + sentinelCount;
+
+// Return "All Clear" message if appropriate
+print Message = iff(hasKeyword && totalCount == 0, "✓ All Clear! No incidents found matching your search criteria.", "")
+| where Message != ""
+```
+
+3. Set visualization to "Text"
+4. In the formatting options, select "Make this item conditionally visible"
+5. Set condition: `SearchKeyword is not empty`
+6. Click "Run query"
+
+### Step 6: Add Instructions Text Block
+
+1. Click "Add text" in your workbook
+2. Add a description to guide users:
+
+```
+## Microsoft Security Incident Search Tool
+
+Enter a keyword to search for incidents across Microsoft Defender and Microsoft Sentinel platforms. Use the Platform dropdown to filter the source of incidents.
+
+1. Enter a search keyword in the "Search Keyword" field.
+2. Select which platform to search in the "Platform" dropdown.
+3. Click "Run queries" at the top of the page to execute the search.
+4. Results will display below, with links to view incidents in their native portals.
+
+**Note:** If no results are found, an "All Clear" message will be displayed.
+```
+
+### Step 7: Add Styling to the Workbook
+
+For each query, click on the "Style" button (shown in your screenshot) and:
+
+1. For both grid queries:
+   - Title: "Search Results - [Defender/Sentinel] Incidents"
+   - Show/hide title: Show
+   - Set conditional formatting:
+     - Column: "Severity"
+     - Apply to: "Background"
+     - Configure rules for each severity level (critical = red, high = orange, medium = yellow, low = blue)
+
+2. For the text query (All Clear):
+   - Text size: Large
+   - Text color: Green
+
+### Step 8: Save and Test the Workbook
+
+1. Click "Save" on the workbook editor
+2. Enter a name for your workbook (e.g., "Security Incident Search Tool")
+3. Click "Apply" to save the workbook
+
+## Key Differences from Original Approach
+
+1. We're using native Azure Workbook parameters instead of custom JavaScript
+2. The search functionality is implemented using KQL query parameters 
+3. We're using the grid visualization which
