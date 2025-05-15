@@ -1,301 +1,249 @@
-
-search *
-| summarize by TableName = $table       //  $table = numele tabelului găsit de operatorul search
-| order by TableName asc
-
-
-xxx
-
-
-
-
-{TableName}
-| extend DeviceVendor  = column_ifexists("DeviceVendor",  "N/A")
-| extend DeviceProduct = column_ifexists("DeviceProduct", "N/A")
-| extend SourceSystem  = column_ifexists("SourceSystem",  "N/A")
-| summarize
-      total    = count(),
-      vendors  = make_set(DeviceVendor,  5),
-      products = make_set(DeviceProduct, 5),
-      sources  = make_set(SourceSystem,  5)
-
-xxxxxc
-
-search *
-| extend Vendor = coalesce(                         // returnează primul non-empty
-        column_ifexists("DeviceVendor",  ""),       // 2-nd arg = default
-        column_ifexists("Vendor",        ""),
-        column_ifexists("VendorName",    ""),
-        column_ifexists("DeviceProduct", "")
-    )
-| where isnotempty(Vendor)
-| summarize by Vendor
-| order by Vendor asc
-
-xxxxxx
-
-let targetVendor = '{Vendor}';        // value picked in the Vendor parameter
-search *
-| extend Vendor = coalesce(
-        column_ifexists("DeviceVendor",  ""),       // add ""
-        column_ifexists("Vendor",        ""),
-        column_ifexists("VendorName",    ""),
-        column_ifexists("DeviceProduct", "")
-    )
-| where tolower(Vendor) == tolower(targetVendor)    // case-insensitive match
-| summarize Rows = count() by TableName = $table
-| order by Rows desc
-
-
-xxxxxx
-
-
-
-
-
-xxxxx
-let Selected = '{TableName}';
-union withsource = _TableSource *
-| where _TableSource == Selected
-| take 1
-| project ColumnNames = bag_keys(todynamic(pack_all()))
-| mv-expand ColumnNames
-| summarize by ColumnNames
-
-xxxxxxxx
-
-let Selected = '{TableName}';
-union withsource = _TableSource *
-| where _TableSource == Selected
-| take 1
-| project ColumnNames = bag_keys(todynamic(pack_all()))
-| mv-expand ColumnNames
-| summarize by ColumnName = tostring(ColumnNames)
-
-
-xxxxxxx
-
-let Selected = '{TableName}';
-union withsource = _TableSource *
-| where _TableSource == Selected
-| take 1
-| project ColumnNames = bag_keys(todynamic(pack_all()))
-| mv-expand ColumnNames
-| summarize by ColumnName = tostring(ColumnNames)
-
-xxxxxxx
-
-let Selected = '{TableName}';
-union withsource = _TableSource *
-| where _TableSource == Selected
-| take 1
-| project ColumnNames = bag_keys(todynamic(pack_all()))
-| mv-expand ColumnNames
-| summarize ColumnList = strcat_array(make_list(tostring(ColumnNames)), " ")
-
-xxxxxx
-
-union isfuzzy=true
-    Heartbeat,
-    Perf,
-    AzureDiagnostics,
-    Syslog,
-    SecurityEvent
-| where $table == '{selectedTable}'
-| take 10
-
-xxxxxxx
-
-{TableName}
-| summarize      total = count(),
-                 vendors = make_set(DeviceVendor, 5),
-                 products = make_set(DeviceProduct, 5),
-                 sources = make_set(SourceSystem, 5)
-let TableConnector = datatable(TableName:string, Connector:string)
-[
-  "AADManagedIdentitySignInLogs", "Azure AD (Entra ID) diagnostics",
-  "AWSCloudTrail",                "Amazon Web Services – S3 / CloudTrail connector",
-  ...
-];
-TableConnector
-| where TableName == '{TableName}'
-
-
-xxxxxxxx
-
-{TableName}
-| extend DeviceVendor  = column_ifexists("DeviceVendor",  "N/A")
-| extend DeviceProduct = column_ifexists("DeviceProduct", "N/A")
-| extend SourceSystem  = column_ifexists("SourceSystem",  "N/A")
-| summarize
-      total    = count(),
-      vendors  = make_set(DeviceVendor,  5),
-      products = make_set(DeviceProduct, 5),
-      sources  = make_set(SourceSystem,  5)
-
-
-xxxxxxxxxx
-
-
-Below is a drop-in extension for the Workbook we already started so you can discover data by product / vendor name – e.g. Vectra, CrowdStrike, Agari, Zscaler – and immediately see which tables they are writing to (plus quick samples).
-
-1 ️⃣ Dynamic parameter VendorName
-kusto
-Copy
-Edit
-search *
-| extend Vendor =
-        coalesce(                     // pick the first non-empty
-            column_ifexists("DeviceVendor"),
-            column_ifexists("Vendor"),
-            column_ifexists("VendorName"),
-            column_ifexists("DeviceProduct"))
-| where isnotempty(Vendor)
-| summarize by Vendor
-| order by Vendor asc
-Type: Dynamic (KQL)
-
-Alias: Vendor
-
-isScopeVar = true – so other queries can read it.
-
-Optional: add a “Show only where Vendor appears at least N times” clause (… | summarize c=count() by Vendor | where c > 100).
-
-2 ️⃣ Which tables does this vendor write?
-kusto
-Copy
-Edit
-let targetVendor = '{Vendor}';          // value chosen in the parameter above
-search *
-| extend Vendor =
-        coalesce(column_ifexists("DeviceVendor"),
-                 column_ifexists("Vendor"),
-                 column_ifexists("VendorName"),
-                 column_ifexists("DeviceProduct"))
-| where tostring(Vendor) == targetVendor
-| summarize Rows = count() by TableName = $table
-| order by Rows desc
-Visualization tip: Bar chart (TableName on Y, Rows on X) helps you spot the “heavy” tables at a glance.
-
-3 ️⃣ “Show me 10 example rows” from a vendor-table pair
-Add another query control that is bound to both parameters (Vendor and the table list from § 2):
-
-kusto
-Copy
-Edit
-let targetVendor = '{Vendor}';
-{TableName}
-| where coalesce( column_ifexists("DeviceVendor"),
-                  column_ifexists("Vendor"),
-                  column_ifexists("VendorName"),
-                  column_ifexists("DeviceProduct")) == targetVendor
-| take 10
-4 ️⃣ What if the logs don’t carry a vendor field?
-Some feeds (especially custom _CL tables) omit DeviceVendor.
-Use one (or all) of these fall-backs:
-
-
-Heuristic	Example
-Table name pattern – many custom tables embed the product:	where TableName startswith "vectra_"
-SourceSystem – Syslog/CEF via AMA shows “OpsManager”:	`
-Message content (string search):	`search "X-Agari"
-Just append the heuristic to the search * block above.
-
-5 ️⃣ Putting it together – minimal workbook flow
-VendorName (Dynamic parameter) – query from § 1.
-
-TablesByVendor (Query display) – query from § 2 → list or bar chart.
-
-SampleRows (Query display) – query from § 3, visible when a table is selected.
-
-(optional) Lookup panel – static datatable() that maps well-known vendors to their recommended Sentinel connector, docs URL, incident templates, etc.
-
-Example usage
-Pick CrowdStrike → TablesByVendor shows CommonSecurityLog, globalprotect_CL (if you ingest PAN with CrowdStrike tech-add-on), row counts, etc. Click CommonSecurityLog → SampleRows instantly lists ten CS Falcon events.
-
-Quick sanity checks
-No results? – verify that the vendor label really exists in that feed (open raw data once).
-
-Multiple spellings? – normalise with tolower(Vendor) or use a small mapping table ("crowdstrike","CrowdStrike").
-
-Performance – prefix each search * with a time filter (| where TimeGenerated >= ago(14d)) so the control stays snappy.
-
-Give it a try and tell me where you’d like more depth – regex tricks, automatic vendor-to-connector lookup, or schema-aware queries for a specific product!
-
-xxxxxxxxc
-
-search *
-| extend Vendor = coalesce(                         // returnează primul non-empty
-        column_ifexists("DeviceVendor",  ""),       // 2-nd arg = default
-        column_ifexists("Vendor",        ""),
-        column_ifexists("VendorName",    ""),
-        column_ifexists("DeviceProduct", "")
-    )
-| where isnotempty(Vendor)
-| summarize by Vendor
-| order by Vendor asc
-
-
-xxxxxxxx
-
-let targetVendor = '{Vendor}';        // value picked in the Vendor parameter
-search *
-| extend Vendor = coalesce(
-        column_ifexists("DeviceVendor",  ""),       // add ""
-        column_ifexists("Vendor",        ""),
-        column_ifexists("VendorName",    ""),
-        column_ifexists("DeviceProduct", "")
-    )
-| where tolower(Vendor) == tolower(targetVendor)    // case-insensitive match
-| summarize Rows = count() by TableName = $table
-| order by Rows desc
-
-
-xxxxxx
-
-let targetVendor = '{Vendor}';      // value chosen in the Vendor parameter
-{TableName}
-| extend Vendor = coalesce(                       // build a unified Vendor field
-        column_ifexists("DeviceVendor",  ""),
-        column_ifexists("Vendor",        ""),
-        column_ifexists("VendorName",    ""),
-        column_ifexists("DeviceProduct", "")
-    )
-| where tolower(Vendor) == tolower(targetVendor)  // case-insensitive match
-| take 10
-
-
-xxxxxx
-
-let targetVendor = trim(" ", '{Vendor}');
-{TableName}
-| extend Vendor = coalesce(
-        column_ifexists("DeviceVendor" , ""),
-        column_ifexists("Vendor"       , ""),
-        column_ifexists("VendorName"   , ""),
-        column_ifexists("DeviceProduct", "")
-    )
-| where
-        isempty(targetVendor)                                   // no vendor selected – show all
-     or (
-            // table HAS a vendor column – filter by it
-            Vendor != "" and
-            (   tolower(Vendor) == tolower(targetVendor)
-             or Vendor contains_cs targetVendor )
-        )
-| take 10
-
-
-xxxxxx
-
-let targetVendor = '{Vendor}';        // value picked in the Vendor parameter
-search *
-| extend Vendor = coalesce(
-        column_ifexists("DeviceVendor",  ""),       // add ""
-        column_ifexists("Vendor",        ""),
-        column_ifexists("VendorName",    ""),
-        column_ifexists("DeviceProduct", "")
-    )
-| where tolower(Vendor) == tolower(targetVendor)    // case-insensitive match
-| summarize Rows = count() by TableName = $table
-| order by Rows desc
+import { useState } from 'react';
+
+export default function IncidentSearchTool() {
+  const [keyword, setKeyword] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState('both');
+  const [error, setError] = useState('');
+  const [searched, setSearched] = useState(false);
+
+  // Mock incidents data (in a real application, this would come from an API)
+  const mockIncidents = [
+    { 
+      id: 1, 
+      title: 'Malware detected on workstation', 
+      platform: 'defender', 
+      description: 'Trojan-type malware detected on workstation HR-PC-023', 
+      severity: 'high',
+      link: 'https://security.microsoft.com/incidents/12345' 
+    },
+    { 
+      id: 2, 
+      title: 'Phishing attempt identified', 
+      platform: 'defender', 
+      description: 'Suspicious email containing malicious links to authentication portal copy', 
+      severity: 'medium',
+      link: 'https://security.microsoft.com/incidents/23456' 
+    },
+    { 
+      id: 3, 
+      title: 'Suspicious authentication activity', 
+      platform: 'sentinel', 
+      description: 'Multiple failed login attempts from unknown IP address', 
+      severity: 'high',
+      link: 'https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/12345' 
+    },
+    { 
+      id: 4, 
+      title: 'Abnormal connection to external server', 
+      platform: 'sentinel', 
+      description: 'A workstation is attempting to connect to an external server with suspicious reputation', 
+      severity: 'medium',
+      link: 'https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/23456' 
+    },
+    { 
+      id: 5, 
+      title: 'Ransomware blocked', 
+      platform: 'defender', 
+      description: 'Ransomware attempt blocked on file server', 
+      severity: 'critical',
+      link: 'https://security.microsoft.com/incidents/34567' 
+    },
+    { 
+      id: 6, 
+      title: 'Data exfiltration alert', 
+      platform: 'sentinel', 
+      description: 'Unusual data transfer to unverified cloud service', 
+      severity: 'high',
+      link: 'https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/34567' 
+    },
+    { 
+      id: 7, 
+      title: 'Abnormal user behavior', 
+      platform: 'sentinel', 
+      description: 'A user account accessing resources outside normal working hours', 
+      severity: 'low',
+      link: 'https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/45678' 
+    },
+    { 
+      id: 8, 
+      title: 'Malicious file detected', 
+      platform: 'defender', 
+      description: 'A file with virus signature was detected in the temporary folder', 
+      severity: 'medium',
+      link: 'https://security.microsoft.com/incidents/45678' 
+    },
+  ];
+
+  const handleSearch = () => {
+    setIsLoading(true);
+    setSearched(true);
+    setError('');
+    
+    // Simulate API call with setTimeout
+    setTimeout(() => {
+      try {
+        if (!keyword.trim()) {
+          setSearchResults([]);
+          setError('Please enter a search keyword');
+          setIsLoading(false);
+          return;
+        }
+
+        const lowerKeyword = keyword.toLowerCase();
+        
+        // Filter incidents based on keyword and selected platform
+        let results = mockIncidents.filter(incident => {
+          const matchesKeyword = 
+            incident.title.toLowerCase().includes(lowerKeyword) || 
+            incident.description.toLowerCase().includes(lowerKeyword);
+            
+          if (selectedPlatform === 'both') {
+            return matchesKeyword;
+          } else {
+            return matchesKeyword && incident.platform === selectedPlatform;
+          }
+        });
+        
+        setSearchResults(results);
+        setIsLoading(false);
+      } catch (error) {
+        setError('An error occurred during search');
+        setIsLoading(false);
+      }
+    }, 1000); // Simulate network delay
+  };
+
+  // Get the severity color based on the severity level
+  const getSeverityColor = (severity) => {
+    switch (severity) {
+      case 'critical':
+        return 'bg-red-600';
+      case 'high':
+        return 'bg-red-400';
+      case 'medium':
+        return 'bg-yellow-400';
+      case 'low':
+        return 'bg-blue-400';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
+  // Get the platform badge color
+  const getPlatformBadgeColor = (platform) => {
+    return platform === 'defender' ? 'bg-blue-600' : 'bg-purple-600';
+  };
+
+  // Handle key press for Enter key
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 bg-gray-100 rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Microsoft Security Incident Search Tool</h1>
+      
+      <div className="flex mb-4">
+        <div className="w-3/4 mr-2">
+          <input
+            type="text"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Enter keyword to search for incidents..."
+            className="w-full p-2 border border-gray-300 rounded"
+          />
+        </div>
+        
+        <div className="w-1/4 ml-2">
+          <select
+            value={selectedPlatform}
+            onChange={(e) => setSelectedPlatform(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded"
+          >
+            <option value="both">Both Platforms</option>
+            <option value="defender">Defender Only</option>
+            <option value="sentinel">Sentinel Only</option>
+          </select>
+        </div>
+      </div>
+      
+      <button
+        onClick={handleSearch}
+        disabled={isLoading}
+        className="w-full p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors mb-6"
+      >
+        {isLoading ? 'Searching...' : 'Search'}
+      </button>
+      
+      {error && <div className="p-4 mb-4 bg-red-100 text-red-700 rounded">{error}</div>}
+      
+      {searched && !isLoading && searchResults.length === 0 && !error && (
+        <div className="p-4 bg-green-100 text-green-700 rounded flex items-center justify-center">
+          <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <span className="font-medium">All Clear! No incidents found matching your search criteria.</span>
+        </div>
+      )}
+      
+      {searchResults.length > 0 && (
+        <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {searchResults.map((incident) => (
+                  <tr key={incident.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getSeverityColor(incident.severity)}`}>
+                        {incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getPlatformBadgeColor(incident.platform)}`}>
+                        {incident.platform.charAt(0).toUpperCase() + incident.platform.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">{incident.title}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-500">{incident.description}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <a 
+                        href={incident.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        View details
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
+      <div className="mt-6 text-xs text-gray-500">
+        <p>Note: This is a demo tool using mock data. In a production environment, this would connect to your Microsoft Defender and Microsoft Sentinel APIs.</p>
+      </div>
+    </div>
+  );
+}
