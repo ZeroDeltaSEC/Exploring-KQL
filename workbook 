@@ -6,7 +6,7 @@ SigninLogs
       or tolower(UserPrincipalName)  contains UserSearch
       or tolower(DisplayName)        contains UserSearch
       or tolower(UserDisplayName)    contains UserSearch
-| extend UserInfo = strcat('👤 ', UserDisplayName, ' (', UserPrincipalName, ')')
+| extend UserInfo = strcat(UserDisplayName, ' (', UserPrincipalName, ')')
 | summarize
     TotalLogins     = count(),
     UniqueDevices   = dcount(DeviceDetail),
@@ -19,5 +19,3 @@ SigninLogs
 | extend DaysActive = datetime_diff('day', LastSeen, FirstSeen)
 | project-reorder UserInfo, TotalLogins, UniqueDevices, UniqueIPs, UniqueLocations, RiskEvents, DaysActive, FirstSeen, LastSeen
 | sort by TotalLogins desc
-```0
-```
