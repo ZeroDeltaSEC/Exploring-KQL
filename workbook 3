@@ -1,67 +1,67 @@
 # Microsoft Sentinel - Advanced User Investigation Workbook
-## Ghid Complet pentru Începători și Experți
+## Complete Guide for Beginners and Experts
 
-### 📋 Cuprins
-1. [Introducere și Concepte](#introducere)
-2. [Pregătirea Mediului](#pregatirea-mediului)
-3. [Structura Workbook-ului](#structura-workbook)
-4. [Implementarea Pas cu Pas](#implementarea)
-5. [Query-uri KQL Avansate](#query-uri-avansate)
-6. [Vizualizări și Dashboards](#vizualizari)
-7. [Automatizări și Alerting](#automatizari)
-8. [Best Practices și Troubleshooting](#best-practices)
-
----
-
-## 🚀 Introducere și Concepte {#introducere}
-
-### Ce este acest Workbook?
-Un workbook complex pentru investigarea comportamentului utilizatorilor care permite:
-- **Căutarea rapidă** a utilizatorilor sau device-urilor
-- **Analiza completă** a activității și locațiilor
-- **Corelarea** cu alertele de securitate
-- **Scoring-ul riscurilor** în timp real
-- **Timeline vizual** al evenimentelor
-
-### Beneficii:
-- ⚡ Investigații mai rapide (de la ore la minute)
-- 🎯 Detectarea precisă a amenințărilor
-- 📊 Vizualizări interactive și intuitive
-- 🔄 Automatizarea proceselor repetitive
+### 📋 Table of Contents
+1. [Introduction and Concepts](#introduction)
+2. [Environment Setup](#environment-setup)
+3. [Workbook Structure](#workbook-structure)
+4. [Step-by-Step Implementation](#implementation)
+5. [Advanced KQL Queries](#advanced-queries)
+6. [Visualizations and Dashboards](#visualizations)
+7. [Automation and Alerting](#automation)
+8. [Best Practices and Troubleshooting](#best-practices)
 
 ---
 
-## ⚙️ Pregătirea Mediului {#pregatirea-mediului}
+## 🚀 Introduction and Concepts {#introduction}
 
-### 1. Prerequisite
+### What is this Workbook?
+A complex workbook for user behavior investigation that enables:
+- **Rapid search** of users or devices
+- **Complete analysis** of activity and locations
+- **Correlation** with security alerts
+- **Real-time risk scoring**
+- **Visual timeline** of events
+
+### Benefits:
+- ⚡ Faster investigations (from hours to minutes)
+- 🎯 Precise threat detection
+- 📊 Interactive and intuitive visualizations
+- 🔄 Automation of repetitive processes
+
+---
+
+## ⚙️ Environment Setup {#environment-setup}
+
+### 1. Prerequisites
 ```
-✓ Microsoft Sentinel workspace activ
-✓ Permisiuni: Microsoft Sentinel Reader (minimum)
-✓ Data Sources conectate:
+✓ Active Microsoft Sentinel workspace
+✓ Permissions: Microsoft Sentinel Reader (minimum)
+✓ Connected Data Sources:
   - Azure AD Sign-in Logs
   - Security Events
   - Office 365 Logs
   - Azure Activity Logs
-✓ Cunoștințe de bază KQL
+✓ Basic KQL knowledge
 ```
 
-### 2. Verificarea Surselor de Date
+### 2. Data Sources Verification
 ```kql
-// Verifică ce surse de date sunt disponibile
+// Check what data sources are available
 union withsource=TableName *
 | where TimeGenerated > ago(1d)
 | summarize Count=count() by TableName
 | sort by Count desc
 ```
 
-### 3. Testarea Conectivității
+### 3. Connectivity Testing
 ```kql
-// Test pentru SigninLogs
+// Test for SigninLogs
 SigninLogs
 | where TimeGenerated > ago(1h)
 | take 10
 
-// Test pentru SecurityAlert
+// Test for SecurityAlert
 SecurityAlert
 | where TimeGenerated > ago(24h)
 | take 5
@@ -69,7 +69,7 @@ SecurityAlert
 
 ---
 
-## 🏗️ Structura Workbook-ului {#structura-workbook}
+## 🏗️ Workbook Structure {#workbook-structure}
 
 ### Architecture Overview
 ```
@@ -86,41 +86,41 @@ SecurityAlert
 
 ---
 
-## 🛠️ Implementarea Pas cu Pas {#implementarea}
+## 🛠️ Step-by-Step Implementation {#implementation}
 
-### Pasul 1: Crearea Workbook-ului
+### Step 1: Creating the Workbook
 
-1. **Navigare în Sentinel**
+1. **Navigate to Sentinel**
    ```
    Azure Portal → Microsoft Sentinel → Workbooks → + New
    ```
 
-2. **Configurarea Parametrilor Globali**
+2. **Global Parameters Configuration**
 ```json
 {
     "UserSearchParameter": {
         "type": "text",
-        "label": "🔍 Caută Utilizator",
+        "label": "🔍 Search User",
         "defaultValue": "",
-        "description": "Introdu numele utilizatorului sau email"
+        "description": "Enter username or email"
     },
     "TimeRangeParameter": {
         "type": "timeRange",
-        "label": "📅 Interval de Timp",
+        "label": "📅 Time Range",
         "defaultValue": "last 30 days"
     },
     "DeviceParameter": {
         "type": "dropdown",
-        "label": "🖥️ Selectează Device",
+        "label": "🖥️ Select Device",
         "query": "SigninLogs | distinct DeviceDetail | limit 100"
     }
 }
 ```
 
-### Pasul 2: Section 1 - User Search & Selection
+### Step 2: Section 1 - User Search & Selection
 
 ```kql
-// Query pentru căutarea utilizatorilor
+// User search query
 let UserSearch = "{UserSearchParameter}";
 let TimeRange = {TimeRangeParameter};
 SigninLogs
@@ -144,10 +144,10 @@ SigninLogs
 | sort by TotalLogins desc
 ```
 
-### Pasul 3: Section 2 - User Profile & Overview
+### Step 3: Section 2 - User Profile & Overview
 
 ```kql
-// Profil detaliat utilizator
+// Detailed user profile
 let SelectedUser = "{SelectedUserParameter}";
 let TimeRange = {TimeRangeParameter};
 SigninLogs
@@ -163,24 +163,24 @@ SigninLogs
     DeviceOS = tostring(DeviceInfo.operatingSystem),
     Browser = tostring(DeviceInfo.browser)
 | summarize
-    // Statistici generale
+    // General statistics
     TotalSignIns = count(),
     SuccessfulSignIns = countif(ResultType == 0),
     FailedSignIns = countif(ResultType != 0),
     
-    // Informații device
+    // Device information
     UniqueDevices = dcount(DeviceId),
     PrimaryOS = take_any(DeviceOS),
     PrimaryBrowser = take_any(Browser),
     
-    // Informații geografice
+    // Geographic information
     Countries = make_set(Country, 10),
     Cities = make_set(City, 20),
     
-    // Informații aplicații
+    // Application information
     Applications = make_set(AppDisplayName, 15),
     
-    // Informații risc
+    // Risk information
     HighRiskSignIns = countif(RiskLevelDuringSignIn == "high"),
     MediumRiskSignIns = countif(RiskLevelDuringSignIn == "medium"),
     
@@ -195,10 +195,10 @@ by UserPrincipalName, UserDisplayName
     ActiveDays = datetime_diff('day', LastActivity, FirstActivity)
 ```
 
-### Pasul 4: Section 3 - Device & Location Analysis
+### Step 4: Section 3 - Device & Location Analysis
 
 ```kql
-// Analiza detaliată device-uri și locații
+// Detailed device and location analysis
 let SelectedUser = "{SelectedUserParameter}";
 let TimeRange = {TimeRangeParameter};
 SigninLogs
@@ -245,10 +245,10 @@ SigninLogs
 | sort by TimeGenerated desc
 ```
 
-### Pasul 5: Section 4 - Security Alerts & Incidents
+### Step 5: Section 4 - Security Alerts & Incidents
 
 ```kql
-// Corelarea cu alertele de securitate
+// Correlation with security alerts
 let SelectedUser = "{SelectedUserParameter}";
 let TimeRange = {TimeRangeParameter};
 let UserIdentities = SigninLogs
@@ -292,10 +292,10 @@ SecurityAlert
 | sort by TimeGenerated desc
 ```
 
-### Pasul 6: Section 5 - Risk Scoring & Analytics
+### Step 6: Section 5 - Risk Scoring & Analytics
 
 ```kql
-// Algoritm complex de risk scoring
+// Complex risk scoring algorithm
 let SelectedUser = "{SelectedUserParameter}";
 let TimeRange = {TimeRangeParameter};
 let BaselineData = SigninLogs
@@ -356,10 +356,10 @@ SigninLogs
 | sort by TotalRiskScore desc, TimeGenerated desc
 ```
 
-### Pasul 7: Section 6 - Timeline & Behavioral Analysis
+### Step 7: Section 6 - Timeline & Behavioral Analysis
 
 ```kql
-// Timeline comportamental avansat
+// Advanced behavioral timeline
 let SelectedUser = "{SelectedUserParameter}";
 let TimeRange = {TimeRangeParameter};
 SigninLogs
@@ -418,10 +418,10 @@ SigninLogs
 | project-reorder TimeGenerated, Status, ActivityPattern, LocationChanged, ImpossibleTravel, Country, City, AppDisplayName
 ```
 
-### Pasul 8: Section 7 - Geo-Location Intelligence
+### Step 8: Section 7 - Geo-Location Intelligence
 
 ```kql
-// Inteligență geografică avansată
+// Advanced geographic intelligence
 let SelectedUser = "{SelectedUserParameter}";
 let TimeRange = {TimeRangeParameter};
 SigninLogs
@@ -467,11 +467,11 @@ SigninLogs
 
 ---
 
-## 📊 Vizualizări și Dashboards {#vizualizari}
+## 📊 Visualizations and Dashboards {#visualizations}
 
-### 1. Configurarea Vizualizărilor
+### 1. Visualization Configuration
 
-#### Harta Geografică
+#### Geographic Map
 ```json
 {
     "visualization": "map",
@@ -532,12 +532,12 @@ SigninLogs
 
 ---
 
-## 🤖 Automatizări și Alerting {#automatizari}
+## 🤖 Automation and Alerting {#automation}
 
-### 1. Logica de Alerting Automată
+### 1. Automated Alerting Logic
 
 ```kql
-// Alert pentru comportament suspect
+// Alert for suspicious behavior
 let SelectedUser = "{UserPrincipalName}";
 let SuspiciousActivity = SigninLogs
 | where TimeGenerated > ago(1h)
@@ -580,36 +580,36 @@ SuspiciousActivity
 
 ---
 
-## 🎯 Best Practices și Troubleshooting {#best-practices}
+## 🎯 Best Practices and Troubleshooting {#best-practices}
 
 ### ✅ Best Practices
 
 #### 1. Performance Optimization
 ```kql
-// Folosește always filtering pe timp primul
+// Always filter on time first
 | where TimeGenerated > ago(30d)
-// Apoi pe user
+// Then on user
 | where UserPrincipalName == "user@domain.com"
-// Folosește summarize în loc de distinct când e posibil
+// Use summarize instead of distinct when possible
 | summarize count() by Country
 ```
 
 #### 2. Error Handling
 ```kql
-// Verifică dacă există date
+// Check if data exists
 let UserExists = toscalar(
     SigninLogs 
     | where UserPrincipalName == "{User}"
     | summarize count()
 );
 union (
-    // Cazul cu date
+    // Case with data
     SigninLogs
     | where UserPrincipalName == "{User}" and UserExists > 0
-    | // ... restul query-ului
+    | // ... rest of query
 ),
 (
-    // Cazul fără date  
+    // Case without data  
     print Message = "No data found for this user"
     | where UserExists == 0
 )
@@ -617,46 +617,46 @@ union (
 
 #### 3. Resource Management
 ```
-⚡ Limitează query-urile la ultimele 90 de zile
-📊 Folosește summarize pentru agregări mari
-🔄 Implementează caching pentru query-uri frecvente
-📈 Monitorizează consumul de KQL compute
+⚡ Limit queries to last 90 days
+📊 Use summarize for large aggregations
+🔄 Implement caching for frequent queries
+📈 Monitor KQL compute consumption
 ```
 
 ### ❌ Common Issues & Solutions
 
 #### Issue 1: Query Timeout
 ```
-Problem: Query-ul durează prea mult
-Solution: 
-- Adaugă time filters mai restrictive
-- Folosește materializate views pentru date frecvente
-- Împarte query-uri mari în secțiuni mai mici
+Problem: Query takes too long
+Solutions: 
+- Add more restrictive time filters
+- Use materialized views for frequent data
+- Split large queries into smaller sections
 ```
 
 #### Issue 2: Missing Data
 ```
-Problem: Nu apar date pentru anumite utilizatori
-Solution:
-- Verifică data source connections
-- Validează permisiunile pentru tabele
-- Controlează time range parameters
+Problem: No data appears for certain users
+Solutions:
+- Check data source connections
+- Validate table permissions
+- Control time range parameters
 ```
 
 #### Issue 3: Performance Issues
 ```
-Problem: Workbook-ul se încarcă lent
-Solution:
-- Optimizează query-urile cu early filtering
-- Folosește caching pentru parametri
-- Limitează numărul de vizualizări simultane
+Problem: Workbook loads slowly
+Solutions:
+- Optimize queries with early filtering
+- Use caching for parameters
+- Limit number of simultaneous visualizations
 ```
 
 ### 🔧 Advanced Troubleshooting
 
 #### Debug Mode
 ```kql
-// Query pentru debugging
+// Debugging query
 print 
     WorkbookVersion = "1.0",
     QueryTime = now(),
@@ -667,7 +667,7 @@ print
 
 #### Performance Monitoring
 ```kql
-// Monitorizarea performanței query-urilor
+// Query performance monitoring
 requests
 | where name contains "workbook"
 | summarize 
@@ -679,18 +679,18 @@ requests
 
 ---
 
-## 📚 Resurse Adiționale
+## 📚 Additional Resources
 
-### 🔗 Link-uri Utile
+### 🔗 Useful Links
 - [Microsoft Sentinel KQL Reference](https://docs.microsoft.com/azure/sentinel/kql-reference)
 - [Workbook Templates Gallery](https://github.com/Azure/Azure-Sentinel/tree/master/Workbooks)
 - [Best Practices Guide](https://docs.microsoft.com/azure/sentinel/best-practices-workbooks)
 
-### 📖 Pentru Studiu Suplimentar
+### 📖 For Further Study
 1. **KQL Advanced Concepts**
-   - Complex joins și unions
+   - Complex joins and unions
    - Time series analysis
-   - Machine learning în KQL
+   - Machine learning in KQL
 
 2. **Security Investigation Techniques** 
    - MITRE ATT&CK Framework integration
@@ -704,20 +704,20 @@ requests
 
 ---
 
-## 🎉 Concluzii
+## 🎉 Conclusions
 
-Acest workbook complex oferă:
-- ✅ **Investigații complete** în minute în loc de ore
-- ✅ **Vizualizări interactive** și intuitive  
-- ✅ **Risk scoring automat** și behavioral analysis
-- ✅ **Alerting inteligent** pentru amenințări
-- ✅ **Scalabilitate** pentru mii de utilizatori
+This complex workbook provides:
+- ✅ **Complete investigations** in minutes instead of hours
+- ✅ **Interactive visualizations** and intuitive interfaces  
+- ✅ **Automated risk scoring** and behavioral analysis
+- ✅ **Intelligent alerting** for threats
+- ✅ **Scalability** for thousands of users
 
 **Next Steps:**
-1. Implementează workbook-ul pas cu pas
-2. Personalizează pentru mediul tău specific
-3. Adaugă propriile tale mejores și vizualizări
-4. Automatizează procesele repetitive
-5. Antrenează echipa în utilizarea eficientă
+1. Implement the workbook step by step
+2. Customize for your specific environment
+3. Add your own improvements and visualizations
+4. Automate repetitive processes
+5. Train your team in efficient usage
 
-Succes în investigațiile tale de securitate! 🚀🔒
+Success in your security investigations! 🚀🔒
