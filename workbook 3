@@ -1,140 +1,247 @@
-# Microsoft Sentinel – Advanced User Investigation Workbook
+📚 Contents
+Before You Start: Accounts, Permissions, and Terminology
 
-## Enhancement Guide (Plain‑English Instructions)
+One-Time Environment Preparation
 
-> **Goal:** Apply a curated set of improvements that make the workbook faster, clearer, and easier to maintain. Follow the steps below in the order that suits your team; each change is self‑contained.
+Your First Workbook: “Hello World” Exercise (5 min)
 
----
+Building the Advanced User Investigation Workbook
+4.1 Create Global Parameters
+4.2 Section 1 – User Search & Selection
+4.3 Section 2 – User Profile & Overview
+4.4 Section 3 – Device & Location Analysis
+4.5 Section 4 – Security Alerts & Incidents
+4.6 Section 5 – Risk Scoring & Analytics
+4.7 Section 6 – Timeline & Behavioural Analysis
+4.8 Section 7 – Geo-Location Intelligence
+4.9 Section 8 – Executive Summary & Export
 
-### Table of Contents
+Visualisation Tips (Maps, Timelines, Heat-maps)
 
-1. [UX & Structure](#ux)
-2. [KQL Performance Tuning](#kql)
-3. [Advanced Visualisations](#viz)
-4. [Automation & Deployment](#automation)
-5. [Maintenance & Versioning](#maintenance)
-6. [Contributing](#contributing)
+Publishing, Sharing, and Version Control
 
----
+Automation & Alerting (Scheduled rules + Logic Apps)
 
-<a name="ux"></a>
+Performance-Tuning & Troubleshooting
 
-## 1  UX & Structure
+Frequently Asked Questions
 
-### 1.1 Debug Parameter Group
+Further Learning Path
 
-1. Create a **Parameter Group** called **\_DebugGroup**.
-2. Set **Visible** to **false** so analysts do not see it by default.
-3. Inside that group add a **Toggle** parameter named **\_ShowDebug** (default *Off*).
-   *Purpose:* Allows you to reveal troubleshooting panels without editing the workbook.
+1 Before You Start
+What you need	Why you need it
+Azure subscription with at least Contributor on the resource group	Creates resources such as Log Analytics workspace
+Microsoft Sentinel enabled on the workspace	Adds SIEM/SOAR capabilities
+Permissions: Sentinel Reader (view) or Sentinel Responder (edit)	Controls who can build/modify workbooks
+Edge/Chrome browser, pop-ups allowed for Azure Portal	Workbook editor opens blades in new panes
 
-### 1.2 Theme Switcher
+Navigation note (2025) – Sentinel now opens either in the classic Azure portal or inside the unified Microsoft Defender portal.
+Path in Defender portal: Microsoft Defender portal ▶️ ☰ Navigation menu ▶️ Microsoft Sentinel ▶️ Threat Management ▶️ Workbooks. 
+Microsoft Learn
 
-1. Add a **Toggle** parameter named **ThemeSelector** with the two options **Light** and **Dark**.
-2. Open **Workbook Settings → Theme** and bind it to the parameter (UI lets you pick the parameter – no code required).
-   *Result:* Analysts can flip themes instantly.
+Key terms
+Term	Meaning
+Workbook	Interactive dashboard built with KQL results + visuals
+Parameter	Re-usable filter (time picker, dropdown, text box)
+KQL	Kusto Query Language – SQL-like syntax used across Azure Monitor and Sentinel
+Workspace	Log Analytics data store that Sentinel sits on top of
+Data connector	Wizard that on-boards logs such as Azure AD Signin, SecurityEvents, Office365
 
-### 1.3 Tabbed Layout for Heavy Sections
+2 One-Time Environment Preparation
+Open portal and switch to the Subscription + Resource Group where Sentinel will live.
 
-1. Add a **Tabs** control (`Add → Tabs`).
-2. Drag the existing **Profile**, **Risk**, and **Timeline** visualisations into three separate tabs.
-3. Save.
-   *Benefit:* Only the active tab queries data, reducing load time by \~30 %.
+Create / locate Log Analytics workspace (LA).
 
-### 1.4 Conditional Formatting Highlights
+In Microsoft Sentinel ▶ Settings ▶ Data Connectors, connect at minimum:
 
-* Open the table visual → **Column settings → Conditional formatting**.
+Azure AD Signin Logs
 
-  * **RiskLevel** – background gradient green→red (low→high).
-  * **StatusIcon** (Alerts) – set row background red for New/High, green for Resolved.
-  * **ImpossibleTravel** – colour the whole row yellow when value is not empty.
+Security Events (Windows)
 
----
+Office 365
 
-<a name="kql"></a>
+Azure Activity
 
-## 2  KQL Performance Tuning
+Verify data flow (one-click query):
 
-| Technique                                      | How to Apply                                                                        | Typical Gain                                                                          |           |   |                                            |              |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------- | - | ------------------------------------------ | ------------ |
-| **Time filter first**                          | Ensure \`                                                                           | where TimeGenerated ≥ startTime and TimeGenerated < endTime\` is the very first line. | 20–30 %   |   |                                            |              |
-| **Materialise baseline**                       | Wrap your 90‑day baseline query in `materialize()` and save it to a `let` variable. | Avoids re‑execution in later joins                                                    |           |   |                                            |              |
-| **Use `serialize` + `lag()` for previous row** | Replace `prev()` with `serialize` then `lag()`; works better on big sets.           | Lower CPU cost                                                                        |           |   |                                            |              |
-| **Composite join key**                         | Create a hash like \`hash\_sha256(UserPrincipalName                                 |                                                                                       | IPAddress |   | DeviceId)\` in both tables before joining. | Faster joins |
-| **Percentile‑based risk**                      | Calculate p80 once: `let p80 = toscalar(...);` then compare scores to that value.   | Dynamic thresholds                                                                    |           |   |                                            |              |
+kql
+Copy
+Edit
+union withsource = TableName *
+| where TimeGenerated > ago(1d)
+| summarize Events = count() by TableName
+| sort by Events desc
+You should see non-zero counts for every required table.
 
-> **Tip:** Test expensive queries in *Logs* first with `set query_plan` to confirm improvement.
+3 First Workbook : “Hello World” (5 minutes)
+Doing a quick practice workbook ensures the portal, permissions, and KQL engine all work.
 
----
+Action	Detail
+1. In Workbooks, click ➕ Add Workbook.	You’ll land in Edit mode automatically.
+2. Click Add ▶ Text → type Hello World.	This proves you can save markdown.
+3. Click Save → name it Hello World → OK.	You just published a workbook!
 
-<a name="viz"></a>
+Delete it afterwards (… ▶ Delete) if you like.
 
-## 3  Advanced Visualisations
+4 Building the Advanced User Investigation Workbook
+Pro tip – Keep two browser tabs open: one in Edit mode, one in View mode, and refresh the View tab after each big change.
 
-* **Map: Bubbles + Lines**
-  *In the Map visual add a second layer of type **Connections** and feed it the previous/next coordinates to show travel paths.*
+4.1 Create Global Parameters
+In the blank workbook choose Edit.
 
-* **Hour–Day Heat‑map**
-  Create a new query that averages `RiskScore` by `dayofweek()` and `hourofday()`, then choose the **Heatmap** visual.
+Add ▶ Add Parameters (top of blade).
 
-* **Profile Sparkline**
-  Add a *Line sparkline* column to the Profile table that counts log‑ins per day for the last 30 days – gives an at‑a‑glance activity trend.
+Configure three parameters:
 
----
+Name	Type	Label	Default	Additional settings
+UserSearchParameter	Text	🔍 Search User	(blank)	Turn on case-insensitive
+TimeRangeParameter	Time range	📅 Time Range	Last 30 days	Enable Fractions of hours
+DeviceParameter	Dropdown	🖥️ Select Device	(All)	“Get data dynamically from query” (leave blank for now)
 
-<a name="automation"></a>
+Click Apply changes after each parameter.
 
-## 4  Automation & Deployment
+4.2 Section 1 – User Search & Selection
+Add ▶ Add query.
 
-### 4.1 Scheduled Detection Rule
+Paste the User Search KQL from your original guide.
 
-1. Copy the detection query into **Analytics → Scheduled query rule**.
-2. Set frequency to **15 minutes**, lookup period **60 minutes**.
-3. Map severity dynamically: *High* when any high‑risk login OR >5 failed log‑ins; else *Medium*.
+Under Visualization, choose Table.
 
-### 4.2 Playbook (Logic App) – Response Template
+At the bottom tick Allow column click actions → pick UserPrincipalName → Create new parameter → name it SelectedUserParameter.
 
-1. Use the **“Microsoft Sentinel incident trigger (preview)”** connector.
-2. Add an **Inline KQL** step to pull extra context (no separate Managed Identity required in the 2025 connector).
-3. Send a Teams message to the **SOC Escalations** channel with the incident link and the KQL result.
+Done Editing → now type part of a user’s UPN in the text box → Run; the table appears, rows are clickable.
 
-### 4.3 Content Hub Package
+What just happened?
+You created a dynamic drill-through: selecting a row populates SelectedUserParameter, which the rest of the workbook can read.
 
-*From the CLI:*
+4.3 Section 2 – User Profile & Overview
+Add query below Section 1.
 
-```bash
-az sentinel content-hub package init --name user-investigation-pack
-# Add: workbook.json, detection KQL, playbook JSON
-az sentinel content-hub package build
-```
+Paste the Detailed user profile KQL.
 
-Publish the resulting ZIP to other workspaces via **Content Hub → My packages**.
+Choose Tiles (recommended for KPI cards).
 
----
+In Tile settings:
 
-<a name="maintenance"></a>
+Field: TotalSignIns → Tile size L → Colour Automatic.
 
-## 5  Maintenance & Versioning
+Add more tiles: FailedSignIns, RiskScore, ActiveDays.
 
-| Task                 | Action                                                                                                   |
-| -------------------- | -------------------------------------------------------------------------------------------------------- |
-| **Workbook version** | Store version string in a hidden parameter `_WorkbookVersion` and show it in the Debug tab.              |
-| **Change tracking**  | Enable *Resource Graph Change History* on the workbook’s resource group; alerts you when someone edits.  |
-| **Rights matrix**    | Document minimal RBAC roles (`Reader`, `Contributor`, `Logic App Operator`) in `/docs/rights‑matrix.md`. |
+Explain every KQL line to yourself:
 
----
+Line fragment	Meaning
+extend GeoInfo = parse_json(LocationDetails)	JSON column split into usable fields
+summarize … by UserPrincipalName	Aggregates one row per user
+extend SuccessRate = round((Successful*100.)/Total,2)	maths calc – always cast to float
 
-<a name="contributing"></a>
+(Spend time here; understanding this block lets you debug any later errors.)
 
-## 6  Contributing
+4.4 Section 3 – Device & Location Analysis
+Create a Table visual from the given query.
 
-1. Fork → create feature branch.
-2. Update `CHANGELOG.md` (date, version, short description).
-3. Run `kqlint .` and test workbook import via `az sentinel workbook list`.
-4. Open Pull Request.
+Click Advanced Settings → Column Formatting:
 
----
+Status → choose Conditional → Success = green ✅, Failure = red ❌.
 
-## License
+RiskIcon – keep as text; icons display in the table cell.
 
-MIT
+4.5 Section 4 – Security Alerts & Incidents
+Because alert volumes explode, always filter early:
+
+kql
+Copy
+Edit
+SecurityAlert
+| where TimeGenerated between (TimeRange)
+| where Entities has SelectedUser
+Add the icons (SeverityIcon, StatusIcon) as separate columns for colour-at-a-glance.
+
+4.6 Section 5 – Risk Scoring & Analytics
+Tip for beginners: copy the query into Log Analytics first, run it, and confirm results; then paste into workbook. Common pitfalls:
+
+Scalar vs. record – The BaselineData variable returns a record; you must wrap with toscalar() if you intend to use it as a row.
+
+Date maths – datetime_diff('day', …) returns positive when the first argument is later. Swap order if you want elapsed days.
+
+4.7 Section 6 – Timeline & Behavioural Analysis
+Choose visual:
+
+Table if you want click-through.
+
+Line chart if you prefer a visual timeline (set Split by ImpossibleTravel).
+
+Enable Drill-down so clicking a day opens the underlying records.
+
+4.8 Section 7 – Geo-Location Intelligence
+In Visualization drop-down pick Map.
+
+Latitude field → SampleLatitude; Longitude field → SampleLongitude.
+
+Size → LoginCount; Colour → RiskEvents.
+
+Turn on Legend (bottom) and Full screen toggle.
+
+💡 Got no map tiles? Check browser pop-up blocker and that you allowed the Azure Maps domain.
+
+4.9 Section 8 – Executive Summary & Export
+Add a Text part with a short markdown summary and add an Export button:
+
+@export to='CSV' query='Section 1' filename='UserInvestigation.csv'
+
+Now analysts can snapshot evidence.
+
+5 Visualisation Tips
+Use-case	Recommended visual	Key portal options
+Countries vs. login count	Map	Bubble = LoginCount, Colour = RiskEvents
+Hour x Day heat-map	Heatmap	Aggregation = Average RiskScore
+Trend lines for RiskScore	Line chart	Split by Country (shows separate lines)
+
+🆕 The workbook editor received a facelift in January 2025: icons moved to the right-hand collapse bar, and the “Apply” button was renamed “Run”. 
+Microsoft Learn
+
+6 Publishing, Sharing & Version Control
+Click Save → give the workbook a clear name and Category (e.g. User Investigation).
+
+Click Pin to dashboard if you want a tile on your Azure home page.
+
+Export as an ARM template (… ▶ Export) and store under source control; GitHub Actions or Azure DevOps can deploy to other tenants.
+
+Use Microsoft Sentinel ▶ Content hub to package the workbook as part of a Solution. 
+Microsoft Learn
+
+7 Automation & Alerting
+Analytics ▶ ➕ Create rule ▶ Scheduled.
+
+Paste the SuspiciousActivity query.
+
+Set frequency to 15 minutes and Lookup period to 60 minutes.
+
+Set Alert severity dynamically: use High when HighRiskLogins > 0, otherwise Medium.
+
+Automated response: attach a Logic App that sends Teams message and (optionally) triggers an Entra ID access review.
+
+8 Performance-Tuning & Troubleshooting
+Symptom	Likely cause	Quick fix
+Query time-outs	No early where TimeGenerated filter	Add one, then re-run
+Blank visuals	Parameter null / wrong data type	Inspect parameter value with print '{SelectedUserParameter}'
+Old threat-intel tables missing	You migrated to new ThreatIntelIndicators / ThreatIntelObjects schema	Replace ThreatIntelligenceIndicator everywhere before 31 July 2025 
+Microsoft Learn
+
+9 Frequently Asked Questions
+Question	Answer
+Can I edit a workbook someone else saved?	Yes, if you have Sentinel Responder or higher on the workspace.
+Can non-Sentinel users see the workbook?	Grant them Log Analytics Reader at minimum and share the workbook URL.
+Why do icons show as squares?	Your browser’s default font lacks emoji. Install Segoe UI Emoji or use PNG icons.
+
+10 Further Learning Path
+KQL 101 → 401 – Official KQL interactive lab (aka.ms/kqllab).
+
+Microsoft Sentinel Ninja Training – Free structured course with certificates.
+
+Community GitHub repo – Hundreds of workbook samples to dissect.
+
+Power BI for Sentinel – Export workbook queries into Power BI for executive dashboards. 
+Microsoft Learn
+
+🎯 You are now ready!
+Build the workbook slowly, test each section, and commit the JSON to version control after every milestone. In a single afternoon you’ll have a production-ready, drill-down investigation surface that cuts investigation time from hours to minutes—while remaining understandable even to colleagues who have never touched KQL before. Have fun and stay secure!
