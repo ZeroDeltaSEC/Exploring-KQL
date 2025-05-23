@@ -1,20 +1,23 @@
-Iată cum ar trebui să fie query-ul corect:
-
-```
-let searchParam = "{SearchText}";
-let tableName = "{TableName}";
-table(tableName)
-| where * has searchParam
-| extend SearchValue = searchParam
-| summarize count() by SearchValue
-```
-
-Sau alternativ, puteți folosi acest format:
-
-```
-let searchParam = "{SearchText}";
-let tableName = "{TableName}";
-search in (tableName) searchParam
-| extend SearchValue = searchParam
-| summarize count() by SearchValue
+let UserSearch = trim(tolower('{UserSearchParameter}'));
+let TimeRange  = {TimeRangeParameter};
+SigninLogs
+| where TimeGenerated between (TimeRange)
+| where isempty(UserSearch)
+      or tolower(UserPrincipalName)  contains UserSearch
+      or tolower(DisplayName)        contains UserSearch
+      or tolower(UserDisplayName)    contains UserSearch
+| extend UserInfo = strcat('👤 ', UserDisplayName, ' (', UserPrincipalName, ')')
+| summarize
+    TotalLogins     = count(),
+    UniqueDevices   = dcount(DeviceDetail),
+    UniqueIPs       = dcount(IPAddress),
+    UniqueLocations = dcount(strcat(LocationDetails.city, ', ', LocationDetails.countryOrRegion)),
+    FirstSeen       = min(TimeGenerated),
+    LastSeen        = max(TimeGenerated),
+    RiskEvents      = countif(RiskLevelDuringSignIn != 'none')
+      by UserPrincipalName, UserDisplayName, UserInfo
+| extend DaysActive = datetime_diff('day', LastSeen, FirstSeen)
+| project-reorder UserInfo, TotalLogins, UniqueDevices, UniqueIPs, UniqueLocations, RiskEvents, DaysActive, FirstSeen, LastSeen
+| sort by TotalLogins desc
+```0
 ```
