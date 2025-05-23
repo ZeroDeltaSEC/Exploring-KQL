@@ -1,7 +1,7 @@
 let UserSearch = trim(tolower('{UserSearchParameter}'));
-let TimeRange  = {TimeRangeParameter};
 SigninLogs
-| where TimeGenerated between (TimeRange)
+| where TimeGenerated >= datetime({TimeRangeParameter:start})
+      and TimeGenerated <= datetime({TimeRangeParameter:end})
 | where isempty(UserSearch)
       or tolower(UserPrincipalName)  contains UserSearch
       or tolower(DisplayName)        contains UserSearch
@@ -9,7 +9,7 @@ SigninLogs
 | extend UserInfo = strcat(UserDisplayName, ' (', UserPrincipalName, ')')
 | summarize
     TotalLogins     = count(),
-    UniqueDevices   = dcount(DeviceDetail),
+    UniqueDevices   = dcount(DeviceId),
     UniqueIPs       = dcount(IPAddress),
     UniqueLocations = dcount(strcat(LocationDetails.city, ', ', LocationDetails.countryOrRegion)),
     FirstSeen       = min(TimeGenerated),
