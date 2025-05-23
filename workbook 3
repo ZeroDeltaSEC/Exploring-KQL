@@ -1,16 +1,16 @@
-# Microsoft Sentinel – Advanced User Investigation Workbook
+# Microsoft Sentinel – Advanced User Investigation Workbook
 
-## Enhancement Guide
+## Enhancement Guide (Plain‑English Instructions)
 
-> **Scope** – This document packages a curated set of improvements that extend the original *Advanced User Investigation Workbook*. Copy‑paste (or fork) into your GitHub repo, apply each section step‑by‑step, and commit after every milestone.
+> **Goal:** Apply a curated set of improvements that make the workbook faster, clearer, and easier to maintain. Follow the steps below in the order that suits your team; each change is self‑contained.
 
 ---
 
-### Table of Contents
+### Table of Contents
 
-1. [UX & Structure](#ux)
+1. [UX & Structure](#ux)
 2. [KQL Performance Tuning](#kql)
-3. [Advanced Visualizations](#viz)
+3. [Advanced Visualisations](#viz)
 4. [Automation & Deployment](#automation)
 5. [Maintenance & Versioning](#maintenance)
 6. [Contributing](#contributing)
@@ -19,146 +19,108 @@
 
 <a name="ux"></a>
 
-## 1  UX & Structure
+## 1  UX & Structure
 
-### 1.1 Parameter Management
+### 1.1 Debug Parameter Group
 
-```jsonc
-{
-  "name": "_DebugGroup",
-  "type": "Group",
-  "visible": false,
-  "parameters": [
-    {
-      "name": "_ShowDebug",
-      "type": "Toggle",
-      "defaultValue": false,
-      "label": "🛠️ Show debug panels"
-    }
-  ]
-}
-```
-
-\* Prefix internal parameters with `_` to hide them from the *Quick Pick*.
-\* Toggle visibility of debug sections with `isVisible: _ShowDebug`.
+1. Create a **Parameter Group** called **\_DebugGroup**.
+2. Set **Visible** to **false** so analysts do not see it by default.
+3. Inside that group add a **Toggle** parameter named **\_ShowDebug** (default *Off*).
+   *Purpose:* Allows you to reveal troubleshooting panels without editing the workbook.
 
 ### 1.2 Theme Switcher
 
-Add a *Toggle* parameter `ThemeSelector` (Light / Dark) and bind it:
+1. Add a **Toggle** parameter named **ThemeSelector** with the two options **Light** and **Dark**.
+2. Open **Workbook Settings → Theme** and bind it to the parameter (UI lets you pick the parameter – no code required).
+   *Result:* Analysts can flip themes instantly.
 
-```jsonc
-"workbookTheme": "{{ if(eq(parameters('ThemeSelector'),'Dark'),'dark','light') }}"
-```
+### 1.3 Tabbed Layout for Heavy Sections
 
-### 1.3 Tabbed Layout
+1. Add a **Tabs** control (`Add → Tabs`).
+2. Drag the existing **Profile**, **Risk**, and **Timeline** visualisations into three separate tabs.
+3. Save.
+   *Benefit:* Only the active tab queries data, reducing load time by \~30 %.
 
-Enclose **Profile**, **Risk** and **Timeline** inside a *Tabs* control:
+### 1.4 Conditional Formatting Highlights
 
-```jsonc
-"elementType": "Tabs",
-"items": [
-  { "title": "Profile",  "items": [ /* profile elements*/ ] },
-  { "title": "Risk",     "items": [ /* risk elements*/ ] },
-  { "title": "Timeline", "items": [ /* timeline elements*/ ] }
-]
-```
+* Open the table visual → **Column settings → Conditional formatting**.
 
-Only the active tab is executed, improving workbook load time by ±30 %.
-
-### 1.4 Conditional Formatting
-
-Create a custom style for `RiskLevel`:
-
-```jsonc
-{
-  "condition": "cellValue >= 80",
-  "backgroundColor": "#e81123",
-  "fontColor": "#ffffff"
-}
-```
-
-Replicate for `StatusIcon` (Alerts) and `ImpossibleTravel` (row highlight).
+  * **RiskLevel** – background gradient green→red (low→high).
+  * **StatusIcon** (Alerts) – set row background red for New/High, green for Resolved.
+  * **ImpossibleTravel** – colour the whole row yellow when value is not empty.
 
 ---
 
 <a name="kql"></a>
 
-## 2  KQL Performance Tuning
+## 2  KQL Performance Tuning
 
-| Technique             | Snippet                                           | Typical Gain                                                   |                                        |                         |             |                |
-| --------------------- | ------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------- | ----------------------- | ----------- | -------------- |
-| Time filter first     | \`                                                | where TimeGenerated >= startTime and TimeGenerated < endTime\` |  20‑30 %                               |                         |             |                |
-| Materialised baseline | `let _baseline = materialize(...);`               |  avoids N× recompute                                           |                                        |                         |             |                |
-| `serialize` + `lag()` | \`                                                | serialize                                                      | extend PrevTime = lag(TimeGenerated)\` |  less CPU than `prev()` |             |                |
-| Composite join key    | \`extend JoinKey = hash\_sha256(UserPrincipalName |                                                                | IPAddress                              |                         | DeviceId)\` |  quicker joins |
+| Technique                                      | How to Apply                                                                        | Typical Gain                                                                          |           |   |                                            |              |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------- | - | ------------------------------------------ | ------------ |
+| **Time filter first**                          | Ensure \`                                                                           | where TimeGenerated ≥ startTime and TimeGenerated < endTime\` is the very first line. | 20–30 %   |   |                                            |              |
+| **Materialise baseline**                       | Wrap your 90‑day baseline query in `materialize()` and save it to a `let` variable. | Avoids re‑execution in later joins                                                    |           |   |                                            |              |
+| **Use `serialize` + `lag()` for previous row** | Replace `prev()` with `serialize` then `lag()`; works better on big sets.           | Lower CPU cost                                                                        |           |   |                                            |              |
+| **Composite join key**                         | Create a hash like \`hash\_sha256(UserPrincipalName                                 |                                                                                       | IPAddress |   | DeviceId)\` in both tables before joining. | Faster joins |
+| **Percentile‑based risk**                      | Calculate p80 once: `let p80 = toscalar(...);` then compare scores to that value.   | Dynamic thresholds                                                                    |           |   |                                            |              |
 
-#### Dynamic Risk Percentile Example
-
-```kql
-let p80 = toscalar(SigninLogs | summarize percentiles(TotalRiskScore, 80));
-| extend RiskLevel = iff(TotalRiskScore >= p80, "High", "Normal")
-```
+> **Tip:** Test expensive queries in *Logs* first with `set query_plan` to confirm improvement.
 
 ---
 
 <a name="viz"></a>
 
-## 3  Advanced Visualizations
+## 3  Advanced Visualisations
 
-* **Map (Bubbles + Lines)** – Add a *Connections* layer to display travel paths between sequential log‑ins.
-* **Hour‑Day Heatmap**
+* **Map: Bubbles + Lines**
+  *In the Map visual add a second layer of type **Connections** and feed it the previous/next coordinates to show travel paths.*
 
-  ```kql
-  SigninLogs
-  | summarize Risk = avg(RiskScore) by DayOfWeek = dayofweek(TimeGenerated), Hour = hourofday(TimeGenerated)
-  | evaluate pivot(DayOfWeek, sum(Risk))
-  ```
-* **Profile Sparklines** – Insert a *Line sparkline* column with daily login counts for the past 30 days.
+* **Hour–Day Heat‑map**
+  Create a new query that averages `RiskScore` by `dayofweek()` and `hourofday()`, then choose the **Heatmap** visual.
+
+* **Profile Sparkline**
+  Add a *Line sparkline* column to the Profile table that counts log‑ins per day for the last 30 days – gives an at‑a‑glance activity trend.
 
 ---
 
 <a name="automation"></a>
 
-## 4  Automation & Deployment
+## 4  Automation & Deployment
 
 ### 4.1 Scheduled Detection Rule
 
-Store logic in `detections/suspicious‑user‑behavior.kql` and run every **15 minutes**.
+1. Copy the detection query into **Analytics → Scheduled query rule**.
+2. Set frequency to **15 minutes**, lookup period **60 minutes**.
+3. Map severity dynamically: *High* when any high‑risk login OR >5 failed log‑ins; else *Medium*.
 
-### 4.2 Playbook v2 (May 2025 GA)
+### 4.2 Playbook (Logic App) – Response Template
 
-Inline KQL in the new connector:
+1. Use the **“Microsoft Sentinel incident trigger (preview)”** connector.
+2. Add an **Inline KQL** step to pull extra context (no separate Managed Identity required in the 2025 connector).
+3. Send a Teams message to the **SOC Escalations** channel with the incident link and the KQL result.
 
-```jsonc
-{
-  "type": "MicrosoftSentinel.RunKqlQuery",
-  "inputs": {
-    "query": "SecurityAlert | where AlertId == @triggerBody()?['AlertId']"
-  }
-}
-```
+### 4.3 Content Hub Package
 
-### 4.3 Content Hub Packaging
+*From the CLI:*
 
 ```bash
 az sentinel content-hub package init --name user-investigation-pack
-cp workbook.json detections/*.kql playbooks/*.json content/
+# Add: workbook.json, detection KQL, playbook JSON
 az sentinel content-hub package build
 ```
 
-Distribute the `.zip` across workspaces instead of classic ARM templates.
+Publish the resulting ZIP to other workspaces via **Content Hub → My packages**.
 
 ---
 
 <a name="maintenance"></a>
 
-## 5  Maintenance & Versioning
+## 5  Maintenance & Versioning
 
-| Task             | Recommended Action                                              |
-| ---------------- | --------------------------------------------------------------- |
-| Workbook version | Parameter `_WorkbookVersion = "2.1.0"` displayed in Debug panel |
-| Change audit     | Enable **Resource Change History** on the workbook RG           |
-| Rights matrix    | Document minimal roles in `docs/rights-matrix.md`               |
+| Task                 | Action                                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Workbook version** | Store version string in a hidden parameter `_WorkbookVersion` and show it in the Debug tab.              |
+| **Change tracking**  | Enable *Resource Graph Change History* on the workbook’s resource group; alerts you when someone edits.  |
+| **Rights matrix**    | Document minimal RBAC roles (`Reader`, `Contributor`, `Logic App Operator`) in `/docs/rights‑matrix.md`. |
 
 ---
 
@@ -166,14 +128,13 @@ Distribute the `.zip` across workspaces instead of classic ARM templates.
 
 ## 6  Contributing
 
-1. Fork → feature branch.
-2. Update `CHANGELOG.md` (date, version, summary).
-3. Lint KQL (`kqlint .`) and validate workbook loads:
-   `az sentinel workbook list --resource-group <rg> --workspace-name <ws>`
-4. Open PR.
+1. Fork → create feature branch.
+2. Update `CHANGELOG.md` (date, version, short description).
+3. Run `kqlint .` and test workbook import via `az sentinel workbook list`.
+4. Open Pull Request.
 
 ---
 
 ## License
 
-[MIT](LICENSE)
+MIT
