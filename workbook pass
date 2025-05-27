@@ -138,6 +138,25 @@ YourLogTable  // replace with your actual table like SecurityEvent, etc.
 
 
 
+let selectedLanguage = '{selectedLanguage}';
+let termMap = datatable(Language:string, Term:string)
+[
+    "Romanian", "parola",
+    "Romanian", "cuvant de trecere",
+    "Romanian", "pwd",
+    "English", "password",
+    "English", "pass",
+    "English", "PIN"
+];
+let termsToSearch = termMap
+    | where Language == selectedLanguage
+    | summarize pattern = strcat(@"(", strcat_array(Term, "|"), @")");
+YourLogTable
+| where YourTextField matches regex pattern
+| project TimeGenerated, YourTextField
+
+
+
 4. Click Run query to verify it works.
 
 
