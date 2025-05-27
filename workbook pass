@@ -134,7 +134,7 @@ YourLogTable  // replace with your actual table like SecurityEvent, etc.
 | where YourTextField has_any (Terms)
 | project TimeGenerated, YourTextField, Computer, Account, EventID
 
-> Replace YourLogTable with a relevant table (like SecurityEvent, DeviceLogonEvents, CustomLog_CL, etc.), and YourTextField with the field you want to search (e.g., EventData, Message, or a custom field).
+> Replace YourLogTable with a relevant table (like SecurityEvent, DeviceLogonEvents, CustomLog_CL, etc.), and YourTextField with the field you want to search (e.g., EventData, Message, or a 
 
 
 
@@ -144,120 +144,29 @@ let termMap = datatable(Language:string, Term:string)
     "Romanian", "parola",
     "Romanian", "cuvant de trecere",
     "Romanian", "pwd",
+    "Romanian", "cod secret",
     "English", "password",
     "English", "pass",
-    "English", "PIN"
+    "English", "PIN",
+    "French", "mot de passe",
+    "French", "code secret",
+    "Spanish", "contraseña",
+    "German", "Passwort",
+    "Italian", "parola d'ordine",
+    "Portuguese", "senha",
+    "Russian", "пароль",
+    "Chinese", "密码",
+    "Japanese", "パスワード",
+    "Arabic", "كلمة المرور",
+    "Hindi", "पासवर्ड"
 ];
 let termsToSearch = termMap
     | where Language == selectedLanguage
-    | summarize pattern = strcat(@"(", strcat_array(Term, "|"), @")");
-YourLogTable
-| where YourTextField matches regex pattern
-| project TimeGenerated, YourTextField
-
-
-
-
-xxxx
-
-
-let selectedLanguage = '{selectedLanguage}';
-let termMap = datatable(Language:string, Term:string)
-[
-    "Romanian", "parola",
-    "Romanian", "cuvant de trecere",
-    "Romanian", "pwd",
-    "Romanian", "cod secret",
-    "English", "password",
-    "English", "pass",
-    "English", "PIN",
-    "French", "mot de passe",
-    "French", "code secret",
-    "Spanish", "contraseña",
-    "German", "Passwort",
-    "Italian", "parola d'ordine",
-    "Portuguese", "senha",
-    "Russian", "пароль",
-    "Chinese", "密码",
-    "Japanese", "パスワード",
-    "Arabic", "كلمة المرور",
-    "Hindi", "पासवर्ड"
-];
-let pattern = termMap
-    | where Language == selectedLanguage
-    | summarize regexPattern = strcat(@"(?i)", "(", strcat_array(Term, "|"), ")");
+    | summarize terms = make_list(Term);
 OfficeActivity
-| where SourceFileName matches regex pattern
-| project TimeGenerated, SourceFileName, UserId, Operation, pattern
-
-
-
-xxccx
-
-let selectedLanguage = '{selectedLanguage}';
-let termMap = datatable(Language:string, Term:string)
-[
-    "Romanian", "parola",
-    "Romanian", "cuvant de trecere",
-    "Romanian", "pwd",
-    "Romanian", "cod secret",
-    "English", "password",
-    "English", "pass",
-    "English", "PIN",
-    "French", "mot de passe",
-    "French", "code secret",
-    "Spanish", "contraseña",
-    "German", "Passwort",
-    "Italian", "parola d'ordine",
-    "Portuguese", "senha",
-    "Russian", "пароль",
-    "Chinese", "密码",
-    "Japanese", "パスワード",
-    "Arabic", "كلمة المرور",
-    "Hindi", "पासवर्ड"
-];
-let termList = termMap
-    | where Language == selectedLanguage
-    | summarize termArray = make_list(Term);
-let regexPattern = strcat(@"(?i)(", strcat_array(termList, "|"), ")");
-OfficeActivity
-| where isnotempty(SourceFileName) and SourceFileName matches regex regexPattern
-| project TimeGenerated, SourceFileName, UserId, Operation, regexPattern
-
-
-
-yyyyuu
-
-
-let selectedLanguage = '{selectedLanguage}';
-let termMap = datatable(Language:string, Term:string)
-[
-    "Romanian", "parola",
-    "Romanian", "cuvant de trecere",
-    "Romanian", "pwd",
-    "Romanian", "cod secret",
-    "English", "password",
-    "English", "pass",
-    "English", "PIN",
-    "French", "mot de passe",
-    "French", "code secret",
-    "Spanish", "contraseña",
-    "German", "Passwort",
-    "Italian", "parola d'ordine",
-    "Portuguese", "senha",
-    "Russian", "пароль",
-    "Chinese", "密码",
-    "Japanese", "パスワード",
-    "Arabic", "كلمة المرور",
-    "Hindi", "पासवर्ड"
-];
-let termArray = termMap
-    | where Language == selectedLanguage
-    | summarize make_list(Term);
-let regexPattern = strcat(@"(?i)(", strcat_array(termArray, "|"), ")");
-OfficeActivity
-| where isnotempty(SourceFileName) and SourceFileName matches regex regexPattern
-| project TimeGenerated, SourceFileName, UserId, Operation, regexPattern
+| where isnotempty(SourceFileName)
+| where SourceFileName has_any (termsToSearch)
+| project TimeGenerated, SourceFileName, UserId, Operation
 
 
 4. Click Run query to verify it works.
