@@ -69,6 +69,21 @@ Arabic
 Hindi
 
 
+[
+  { "text": "English", "value": "English" },
+  { "text": "Romanian", "value": "Romanian" },
+  { "text": "French", "value": "French" },
+  { "text": "Spanish", "value": "Spanish" },
+  { "text": "German", "value": "German" },
+  { "text": "Portuguese", "value": "Portuguese" },
+  { "text": "Russian", "value": "Russian" },
+  { "text": "Chinese", "value": "Chinese" },
+  { "text": "Japanese", "value": "Japanese" },
+  { "text": "Arabic", "value": "Arabic" },
+  { "text": "Hindi", "value": "Hindi" }
+]
+
+
 5. Click Save to add the parameter.
 
 
