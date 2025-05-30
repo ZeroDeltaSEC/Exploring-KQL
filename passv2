@@ -29,12 +29,10 @@ DeviceFileEvents
 
 xxxx
 
-
 // Setează parametrul pentru a controla modul de afișare
 let ShowSummary = true; // Schimbă în false pentru rezultate complete
 // Query principal pentru fișiere cu termeni de parole
 let MainQuery = 
-    // Monitorare fișiere locale cu termeni de parole
     DeviceFileEvents
     | where FileName has_any (".txt", ".doc", ".xls", ".docx", ".xlsx", ".one")
     | where (
@@ -46,7 +44,6 @@ let MainQuery =
     )
     | project Timestamp, DeviceName, FolderPath, FileName, FileSize, ActionType, Source = "Local Device"
     | union (
-        // Monitorare OneDrive și SharePoint
         OfficeActivity
         | where OfficeWorkload in ("OneDrive", "SharePoint")
         | where SourceFileName has_any (".txt", ".doc", ".xls", ".docx", ".xlsx", ".one")
@@ -59,15 +56,12 @@ let MainQuery =
         )
         | project Timestamp = TimeGenerated, DeviceName = UserId, FolderPath = SourceRelativeUrl, FileName = SourceFileName, FileSize = 0, ActionType = Operation, Source = OfficeWorkload
     );
-// Afișează fie sumar fie rezultate complete
-iff(ShowSummary,
-    MainQuery
+let SummaryQuery = MainQuery
     | summarize 
         TotalEvents = count(),
-        UniqueDevices = dcount(DeviceName),
         FirstSeen = min(Timestamp),
         LastSeen = max(Timestamp)
         by DeviceName, Source
-    | sort by TotalEvents desc,
-    MainQuery | sort by Timestamp desc
-)
+    | sort by TotalEvents desc;
+let DetailQuery = MainQuery | sort by Timestamp desc;
+iff(ShowSummary, SummaryQuery, DetailQuery)
