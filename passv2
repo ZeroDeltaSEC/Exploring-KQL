@@ -30,9 +30,8 @@ DeviceFileEvents
 xxxx
 
 
-  // Setează parametrul pentru a controla modul de afișare
+// Setează parametrul pentru a controla modul de afișare
 let ShowSummary = true; // Schimbă în false pentru rezultate complete
-
 // Query principal pentru fișiere cu termeni de parole
 let MainQuery = 
     // Monitorare fișiere locale cu termeni de parole
@@ -60,10 +59,8 @@ let MainQuery =
         )
         | project Timestamp = TimeGenerated, DeviceName = UserId, FolderPath = SourceRelativeUrl, FileName = SourceFileName, FileSize = 0, ActionType = Operation, Source = OfficeWorkload
     );
-
 // Afișează fie sumar fie rezultate complete
-case(
-    ShowSummary,
+iff(ShowSummary,
     MainQuery
     | summarize 
         TotalEvents = count(),
@@ -72,6 +69,5 @@ case(
         LastSeen = max(Timestamp)
         by DeviceName, Source
     | sort by TotalEvents desc,
-    
     MainQuery | sort by Timestamp desc
 )
