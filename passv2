@@ -1,0 +1,57 @@
+let Keywords = dynamic([
+    "parola", "parole",
+    "password", "passwords",
+    "mot", "mots", "passe",
+    "passwort", "passwörter", "passwoerter",
+    "contraseña", "contraseñas",
+    "senha", "senhas",
+    "heslo", "heslá", "hesla",
+    "focal", "focail", "faire",
+    "password", "kutashabd",
+    "pasuwaado"
+]);
+
+let Rx = @"(?i)(mot\s+de\s+passe|mots\s+de\s+passe|focal\s+faire|focail\s+faire|पासवर्ड|कूटशब्द|密码|密碼|비밀번호|패스워드|パスワード)";
+
+DeviceFileEvents
+| where Timestamp >= ago(30d)
+| where FileName has_any (".txt", ".doc", ".xls", ".docx", ".xlsx", ".one")
+| where (
+    (FileName has_any (Keywords) or FolderPath has_any (Keywords))
+    or
+    (FileName has_all ("user", "password") or FolderPath has_all ("user", "password"))
+    or
+    (FileName matches regex Rx or FolderPath matches regex Rx)
+)
+| project Timestamp, DeviceName, FolderPath, FileName, FileSize, ActionType
+| sort by Timestamp desc
+
+
+
+xxxx
+
+let Exts = dynamic(["txt","doc","xls","docx","xlsx","one"]);
+let Keywords = dynamic([
+    "password","passwords",
+    "parola","parole",
+    "passwort","passwoerter","passwörter",
+    "contraseña","contraseñas",
+    "senha","senhas",
+    "heslo","hesla","heslá",
+    "focalfaire","focailfaire"
+]);
+let Rx = @'(?i)(?:\bmot[^\w]{0,2}de[^\w]{0,2}passe(?:s)?\b|
+               \bfocal[^\w]{0,2}faire(?:s)?\b|
+               \bparola[^\w]{0,2}d[^\w]{0,2}ordine\b|
+               \bparole[^\w]{0,2}d[^\w]{0,2}ordine\b|
+               पासवर्ड|कूटशब्द|密码|密碼|비밀번호|패스워드|パスワード)';
+DeviceFileEvents
+| where isnotempty(FileName)
+| extend FileExtension = tolower(split(FileName,".")[-1])
+| where FileExtension in (Exts)
+| where FileName has_any(Keywords)
+      or FileName has_all(dynamic(["user","password"]))
+      or FileName matches regex Rx
+| project Timestamp, DeviceName, FolderPath, FileName, FileSize, ActionType
+| distinct *
+| sort by Timestamp desc
