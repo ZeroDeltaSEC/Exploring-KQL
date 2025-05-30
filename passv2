@@ -1,27 +1,12 @@
-let Keywords = dynamic([
-    "parola", "parole",
-    "password", "passwords",
-    "mot", "mots", "passe",
-    "passwort", "passwörter", "passwoerter",
-    "contraseña", "contraseñas",
-    "senha", "senhas",
-    "heslo", "heslá", "hesla",
-    "focal", "focail", "faire",
-    "password", "kutashabd",
-    "pasuwaado"
-]);
-
-let Rx = @"(?i)(mot\s+de\s+passe|mots\s+de\s+passe|focal\s+faire|focail\s+faire|पासवर्ड|कूटशब्द|密码|密碼|비밀번호|패스워드|パスワード)";
-
 DeviceFileEvents
 | where Timestamp >= ago(30d)
 | where FileName has_any (".txt", ".doc", ".xls", ".docx", ".xlsx", ".one")
 | where (
-    (FileName has_any (Keywords) or FolderPath has_any (Keywords))
+    (FileName has_any ("parola", "parole", "password", "passwords", "mot", "mots", "passe", "passwort", "passwörter", "passwoerter", "contraseña", "contraseñas", "senha", "senhas", "heslo", "heslá", "hesla", "focal", "focail", "faire") or FolderPath has_any ("parola", "parole", "password", "passwords", "mot", "mots", "passe", "passwort", "passwörter", "passwoerter", "contraseña", "contraseñas", "senha", "senhas", "heslo", "heslá", "hesla", "focal", "focail", "faire"))
     or
     (FileName has_all ("user", "password") or FolderPath has_all ("user", "password"))
     or
-    (FileName matches regex Rx or FolderPath matches regex Rx)
+    (FileName matches regex @"(?i)(mot\s+de\s+passe|mots\s+de\s+passe|focal\s+faire|focail\s+faire|पासवर्ड|कूटशब्द|密码|密碼|비밀번호|패스워드|パスワード)" or FolderPath matches regex @"(?i)(mot\s+de\s+passe|mots\s+de\s+passe|focal\s+faire|focail\s+faire|पासवर्ड|कूटशब्द|密码|密碼|비밀번호|패스워드|パスワード)")
 )
 | project Timestamp, DeviceName, FolderPath, FileName, FileSize, ActionType
 | sort by Timestamp desc
