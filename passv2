@@ -1,5 +1,5 @@
+// Monitorare fișiere locale cu termeni de parole
 DeviceFileEvents
-| where Timestamp >= ago(30d)
 | where FileName has_any (".txt", ".doc", ".xls", ".docx", ".xlsx", ".one")
 | where (
     (FileName has_any ("parola", "parole", "password", "passwords", "mot", "mots", "passe", "passwort", "passwörter", "passwoerter", "contraseña", "contraseñas", "senha", "senhas", "heslo", "heslá", "hesla", "focal", "focail", "faire") or FolderPath has_any ("parola", "parole", "password", "passwords", "mot", "mots", "passe", "passwort", "passwörter", "passwoerter", "contraseña", "contraseñas", "senha", "senhas", "heslo", "heslá", "hesla", "focal", "focail", "faire"))
@@ -8,7 +8,21 @@ DeviceFileEvents
     or
     (FileName matches regex @"(?i)(mot\s+de\s+passe|mots\s+de\s+passe|focal\s+faire|focail\s+faire|पासवर्ड|कूटशब्द|密码|密碼|비밀번호|패스워드|パスワード)" or FolderPath matches regex @"(?i)(mot\s+de\s+passe|mots\s+de\s+passe|focal\s+faire|focail\s+faire|पासवर्ड|कूटशब्द|密码|密碼|비밀번호|패스워드|パスワード)")
 )
-| project Timestamp, DeviceName, FolderPath, FileName, FileSize, ActionType
+| project Timestamp, DeviceName, FolderPath, FileName, FileSize, ActionType, Source = "Local Device"
+| union (
+    // Monitorare OneDrive și SharePoint
+    OfficeActivity
+    | where OfficeWorkload in ("OneDrive", "SharePoint")
+    | where SourceFileName has_any (".txt", ".doc", ".xls", ".docx", ".xlsx", ".one")
+    | where (
+        (SourceFileName has_any ("parola", "parole", "password", "passwords", "mot", "mots", "passe", "passwort", "passwörter", "passwoerter", "contraseña", "contraseñas", "senha", "senhas", "heslo", "heslá", "hesla", "focal", "focail", "faire") or SourceRelativeUrl has_any ("parola", "parole", "password", "passwords", "mot", "mots", "passe", "passwort", "passwörter", "passwoerter", "contraseña", "contraseñas", "senha", "senhas", "heslo", "heslá", "hesla", "focal", "focail", "faire"))
+        or
+        (SourceFileName has_all ("user", "password") or SourceRelativeUrl has_all ("user", "password"))
+        or
+        (SourceFileName matches regex @"(?i)(mot\s+de\s+passe|mots\s+de\s+passe|focal\s+faire|focail\s+faire|पासवर्ड|कूटशब्द|密码|密碼|비밀번호|패스워드|パスワード)" or SourceRelativeUrl matches regex @"(?i)(mot\s+de\s+passe|mots\s+de\s+passe|focal\s+faire|focail\s+faire|पासवर्ड|कूटशब्द|密码|密碼|비밀번호|패스워드|パスワード)")
+    )
+    | project Timestamp = TimeGenerated, DeviceName = UserId, FolderPath = SourceRelativeUrl, FileName = SourceFileName, FileSize = 0, ActionType = Operation, Source = OfficeWorkload
+)
 | sort by Timestamp desc
 
 
@@ -16,36 +30,29 @@ DeviceFileEvents
 xxxx
 
 
-    // ── LISTE ───────────────────────────────────────────
+  // LISTE
 let Exts = dynamic(["txt","doc","xls","docx","xlsx","one"]);
 let Keywords = dynamic([
-    // EN / IT
-    "password","passwords",
-    // RO
-    "parola","parole",
-    // DE / CH-DE
-    "passwort","passwoerter","passwörter",
-    // ES-MX
-    "contraseña","contraseñas",
-    // PT-BR
-    "senha","senhas",
-    // SK / CZ
-    "heslo","hesla","heslá",
-    // GA-IE
-    "focal faire","focail faire"
+    "password","passwords",           // EN / IT
+    "parola","parole",                // RO
+    "passwort","passwoerter","passwörter", // DE / CH-DE
+    "contraseña","contraseñas",       // ES-MX
+    "senha","senhas",                 // PT-BR
+    "heslo","hesla","heslá",          // SK / CZ
+    "focal faire","focail faire"      // GA-IE
 ]);
 
-// fraze și grafii non-latine
-let Rx = @'(?i)(?:\bmot[^\w]{0,2}de[^\w]{0,2}passe(?:s)?\b|      # FR / CH-FR
-               \bparola[^\w]{0,2}d[^\w]{0,2}ordine\b|            # IT-CH
+// fraze & grafii non-latine
+let Rx = @'(?i)(?:\bmot[^\w]{0,2}de[^\w]{0,2}passe(?:s)?\b|
+               \bparola[^\w]{0,2}d[^\w]{0,2}ordine\b|
                \bparole[^\w]{0,2}d[^\w]{0,2}ordine\b|
-               \buser[^\w]{0,4}passwords?\b|                     # “user-password”
-               पासवर्ड|कूटशब्द|                                  # HI
-               密码|密碼|                                         # ZH
-               비밀번호|패스워드|                                  # KO
-               パスワード)';                                      # JA
+               \buser[^\w]{0,4}passwords?\b|
+               पासवर्ड|कूटशब्द|
+               密码|密碼|
+               비밀번호|패스워드|
+               パスワード)';
 
-// ── INTEROGARE ─────────────────────────────────────
+// INTEROGARE
 DeviceFileEvents
 | where isnotempty(FileName)
 | extend FileExtension = tolower(split(FileName,'.')[-1])
