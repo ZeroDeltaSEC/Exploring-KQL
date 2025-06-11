@@ -1,4 +1,4 @@
-mistral.ai
+6mistral.ai
 
 anthropic.com
 
@@ -395,3 +395,116 @@ DeviceNetworkEvents
 8. Save the workbook as "AI Services Monitor"
 
 This workbook will provide you with complete visibility into AI service usage in your organization, without needing JSON or complex configurations!
+
+
+xxxcc
+
+
+Absolutely! Here's the explanation in English for building your Microsoft Sentinel Workbook, based on your KQL and requirements.
+
+
+---
+
+✅ What You Want to Achieve
+
+1. Time range selector – so you can pick a time interval.
+
+
+2. Dropdown parameter – to choose sorting by either "User" (device) or "AI used" (RemoteUrl).
+
+
+3. Visual result display – a table sorted and filtered as needed.
+
+
+
+
+---
+
+🧩 1. Workbook Parameters
+
+A. Time Range Parameter
+
+Use Sentinel’s built-in time range parameter:
+
+{
+  "name": "TimeRange",
+  "type": "TimeRange"
+}
+
+B. Dropdown Parameter for Sorting
+
+Create a dropdown parameter like this:
+
+{
+  "name": "SortBy",
+  "type": "DropDown",
+  "value": "User",
+  "options": [
+    { "value": "User", "label": "User (DeviceName)" },
+    { "value": "AI", "label": "AI Used (RemoteUrl)" }
+  ]
+}
+
+
+---
+
+🧩 2. KQL Query with Parameters
+
+Here is how your KQL should look inside the workbook, making use of those parameters:
+
+DeviceNetworkEvents
+| where RemoteUrl has_any (
+    "adcreative.ai", "canva.com", "chat.openai.com", "chatgpt.com", "claude.ai",
+    "deepai.org", "deepdreamgenerator.com", "designs.ai", "elevenlabs.io", "gamma.app",
+    "gemini.google.com", "huggingface.co", "ideogram.ai", "invideo.io", "openart.ai",
+    "perplexity.ai", "phind.com", "play.ht", "quillbot.com", "replicate.com",
+    "runwayml.com", "stability.ai", "stablediffusionweb.com", "artbreeder.com",
+    "vectorizer.ai", "voicemod.net", "audiogen.com", "pika.art", "synthesia.io",
+    "heygen.com", "agentgpt.rework.ai", "auto-gpt.net", "notion.so", "jasper.ai",
+    "copy.ai", "scite.ai", "elicit.org", "mistral.ai", "anthropic.com", "cohere.ai",
+    "runpod.io", "scenario.com", "leonardo.ai", "pictory.ai", "fliki.ai", "descript.com",
+    "replit.com", "sourcegraph.com", "codeium.com", "consensus.app", "scispace.com",
+    "explainpaper.com", "mem.ai", "tome.app", "taskade.com", "browse.ai", "durable.co",
+    "magickpen.com"
+)
+| where Timestamp between ({{TimeRange.start}} .. {{TimeRange.end}})
+| project Timestamp, DeviceName, InitiatingProcessFileName, RemoteUrl, ReportId
+| order by case(
+    "{{SortBy}}" == "User", DeviceName,
+    "{{SortBy}}" == "AI", RemoteUrl,
+    Timestamp
+) desc
+
+This allows the sort column to switch depending on what the user selects in the dropdown.
+
+
+---
+
+🧩 3. Visualize in Sentinel
+
+Add a Table view in the Workbook:
+
+Connect it to the query above.
+
+Bind it to the TimeRange and SortBy parameters.
+
+
+
+---
+
+📦 Summary
+
+You now have:
+
+A time range picker for filtering.
+
+A dropdown to choose whether to sort by user or AI site.
+
+A dynamic KQL query that responds to both.
+
+
+
+---
+
+Would you like me to generate the full .workbook JSON file so you can import this directly into Sentinel?
+
