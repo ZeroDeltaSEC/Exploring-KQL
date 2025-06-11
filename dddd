@@ -186,3 +186,28 @@ print Domains = aiDomains
 | project AI
 | union (datatable(AI:string) [ "General" ])   // add the “General” row
 | order by AI
+
+xxxxxxxx
+
+
+// Static list of AI-related domains
+let aiDomains = dynamic([
+    "adcreative.ai","canva.com","chat.openai.com","chatgpt.com","claude.ai",
+    "deepai.org","deepdreamgenerator.com","designs.ai","elevenlabs.io","gamma.app",
+    "gemini.google.com","huggingface.co","ideogram.ai","invideo.io","openart.ai",
+    "perplexity.ai","phind.com","play.ht","quillbot.com","replicate.com",
+    "runwayml.com","stability.ai","stablediffusionweb.com","artbreeder.com",
+    "vectorizer.ai","voicemod.net","audiogen.com","pika.art","synthesia.io",
+    "heygen.com","agentgpt.reworkd.ai","auto-gpt.net","notion.so","jasper.ai",
+    "copy.ai","scite.ai","elicit.org","mistral.ai","anthropic.com","cohere.ai",
+    "runpod.io","scenario.com","leonardo.ai","pictory.ai","fliki.ai","descript.com",
+    "replit.com","sourcegraph.com","codeium.com","consensus.app","scispace.com",
+    "explainpaper.com","mem.ai","tome.app","taskade.com","browse.ai","durable.co",
+    "magickpen.com"
+]);
+
+// 1 row = “General”, plus one row per domain
+datatable (AI:string) [ "General" ]       // <-- keeps the column name AI
+| union (print AI = aiDomains
+         | mv-expand AI)                 // explode the array into rows
+| sort by AI
