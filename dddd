@@ -211,3 +211,30 @@ datatable (AI:string) [ "General" ]       // <-- keeps the column name AI
 | union (print AI = aiDomains
          | mv-expand AI)                 // explode the array into rows
 | sort by AI
+
+
+xxxxx
+
+// ------------- STATIC LIST -------------
+let aiDomains = dynamic([
+    "adcreative.ai","agentgpt.reworkd.ai","anthropic.com","artbreeder.com",
+    "audiogen.com","auto-gpt.net","browse.ai","canva.com","chat.openai.com",
+    "chatgpt.com","claude.ai","codeium.com","cohere.ai","consensus.app",
+    "copy.ai","deepai.org","deepdreamgenerator.com","descript.com","designs.ai",
+    "durable.co","elevenlabs.io","elicit.org","explainpaper.com","fliki.ai",
+    "gamma.app","gemini.google.com","huggingface.co","ideogram.ai","invideo.io",
+    "jasper.ai","leonardo.ai","magickpen.com","mem.ai","mistral.ai","notion.so",
+    "openart.ai","perplexity.ai","pictory.ai","phind.com","pika.art","play.ht",
+    "quillbot.com","replit.com","replicate.com","runpod.io","runwayml.com",
+    "scispace.com","scite.ai","scenario.com","sourcegraph.com","stability.ai",
+    "stablediffusionweb.com","synthesia.io","taskade.com","tome.app","vectorizer.ai",
+    "voicemod.net","durable.co"
+]);
+
+// ------------- ONE ROW PER VALUE -------------
+print DomainList = aiDomains
+| mv-expand AI = DomainList                 // explode array → rows
+| project AI = tostring(AI)                 // ensure the column is string
+| union (datatable (AI:string) [ "General" ])   // add the "General" row
+| project AI                                // keep only the dropdown column
+| order by AI asc                           // alphabetical for nice UX
