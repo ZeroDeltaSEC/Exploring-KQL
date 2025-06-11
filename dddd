@@ -658,3 +658,9 @@ xxxxx
     { "value": "AI", "label": "AI Used (RemoteUrl)" }
   ]
 }
+
+xxxxxx
+
+
+| extend SortField = case('{SortBy}' == 'User', tostring(DeviceName), '{SortBy}' == 'AI', tostring(RemoteUrl), "")
+| order by SortField asc
