@@ -540,3 +540,109 @@ DeviceNetworkEvents
 | extend SortField = case('{SortBy}' == 'User', tostring(DeviceName), '{SortBy}' == 'AI', tostring(RemoteUrl), "")
 | project Timestamp, DeviceName, InitiatingProcessFileName, RemoteUrl, ReportId, SortField
 | order by SortField asc
+
+xxxxxx
+
+Thanks for the image — you're really close! Let’s fix everything now:
+
+
+---
+
+❌ What’s Going Wrong:
+
+1. You're using curly quotes (‘ ’) instead of straight quotes (') in the case() line.
+
+
+2. Your dropdown is not connected properly – it still shows <query pending> and doesn’t populate.
+
+
+
+
+---
+
+✅ Step-by-Step Fix
+
+1. ✅ Fix the Quotes in the Query
+
+Wrong:
+
+case('‘{SortBy}’' == 'User', ...)
+
+Correct:
+
+case('{SortBy}' == 'User', tostring(DeviceName), '{SortBy}' == 'AI', tostring(RemoteUrl), "")
+
+Replace your entire query block with this corrected version:
+
+
+---
+
+✅ Full Working Query (Copy This):
+
+DeviceNetworkEvents
+| where RemoteUrl has_any (
+    "adcreative.ai", "canva.com", "chat.openai.com", "chatgpt.com", "claude.ai",
+    "deepai.org", "deepdreamgenerator.com", "designs.ai", "elevenlabs.io", "gamma.app",
+    "gemini.google.com", "huggingface.co", "ideogram.ai", "invideo.io", "openart.ai",
+    "perplexity.ai", "phind.com", "play.ht", "quillbot.com", "replicate.com",
+    "runwayml.com", "stability.ai", "stablediffusionweb.com", "artbreeder.com",
+    "vectorizer.ai", "voicemod.net", "audiogen.com", "pika.art", "synthesia.io",
+    "heygen.com", "agentgpt.rework.ai", "auto-gpt.net", "notion.so", "jasper.ai",
+    "copy.ai", "scite.ai", "elicit.org", "mistral.ai", "anthropic.com", "cohere.ai",
+    "runpod.io", "scenario.com", "leonardo.ai", "pictory.ai", "fliki.ai", "descript.com",
+    "replit.com", "sourcegraph.com", "codeium.com", "consensus.app", "scispace.com",
+    "explainpaper.com", "mem.ai", "tome.app", "taskade.com", "browse.ai", "durable.co",
+    "magickpen.com"
+)
+| where Timestamp between ({{TimeRange.start}} .. {{TimeRange.end}})
+| extend SortField = case('{SortBy}' == 'User', tostring(DeviceName), '{SortBy}' == 'AI', tostring(RemoteUrl), "")
+| project Timestamp, DeviceName, InitiatingProcessFileName, RemoteUrl, ReportId, SortField
+| order by SortField asc
+
+
+---
+
+2. ✅ Fix the Dropdown Parameter
+
+Make sure your parameter is defined exactly like this:
+
+{
+  "name": "SortBy",
+  "type": "DropDown",
+  "value": "User",
+  "options": [
+    { "value": "User", "label": "User (DeviceName)" },
+    { "value": "AI", "label": "AI Used (RemoteUrl)" }
+  ]
+}
+
+> ✅ Ensure the name is exactly SortBy — no typos, no spaces.
+
+
+
+
+---
+
+3. ✅ Preview Fixes
+
+Click the dropdown once to “wake it up.”
+
+If it shows <query pending>, try switching tabs or clicking Done Editing → Open to refresh.
+
+
+
+---
+
+✅ Optional: Want Me to Build It For You?
+
+I can generate a complete .workbook JSON file ready to import into Sentinel with:
+
+Time range selector
+
+SortBy dropdown
+
+Working query and table view
+
+
+Let me know — I can send you the full file in seconds.
+
