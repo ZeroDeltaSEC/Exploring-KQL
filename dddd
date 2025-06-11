@@ -1,70 +1,138 @@
-Pentru a transforma acest KQL într-un workbook interactiv în Azure Monitor sau Microsoft Sentinel, poți introduce parametri dinamici pentru un selector de interval de timp și un drop-down pentru filtrarea după serviciu AI. Iată cum să faci asta:
+Below is a complete, copy-/-paste-ready Workbook recipe (in English) that turns the KQL you sent into an interactive report with
+
+a Time range picker – drives the query start / end date
+
+a Dropdown called AI Site with
+
+“General” → shows everything
+
+one item for every AI-related domain in your filter list (so you can look at a single tool)
+
+
 
 
 ---
 
-🔧 1. Adaugă parametrii în workbook
+1  Add the parameters
 
-📅 Parametru pentru interval de timp (TimeRange):
+Parameter	Type	Name (internal)	What to enter in the UI
 
-let TimeRange = dynamic({ "name": "Time range", "type": "TimeRangePicker", "value": "P1D" });
+Time range	Time range	TimeRange	leave defaults (or tick Use dashboard time range if you prefer)
+AI site	Dropdown	AIDrop	Source → Query  (paste the query below)
 
-📋 Parametru pentru selectare AI (AIFilter):
 
-let AIFilter = dynamic({
-    "name": "AI Service",
-    "type": "DropDown",
-    "values": ["General", "adcreative.ai", "canva.com", "chat.openai.com", "chatgpt.com", "claude.ai", 
-               "deepai.org", "deepdreamgenerator.com", "designs.ai", "elevenlabs.io", "gamma.app",
-               "gemini.google.com", "huggingface.co", "ideogram.ai", "invideo.io", "openart.ai",
-               "perplexity.ai", "phind.com", "play.ht", "quillbot.com", "replicate.com",
-               "runwayml.com", "stability.ai", "stablediffusionweb.com", "artbreeder.com",
-               "vectorizer.ai", "voicemod.net", "audiogen.com", "pika.art", "synthesia.io",
-               "heygen.com", "agentgpt.rework.ai", "auto-gpt.net", "notion.so", "jasper.ai",
-               "copy.ai", "scite.ai", "elicit.org", "mistral.ai", "anthropic.com", "cohere.ai",
-               "runpod.io", "scenario.com", "leonardo.ai", "pictory.ai", "fliki.ai", "descript.com",
-               "replit.com", "sourcegraph.com", "codeium.com", "consensus.app", "scispace.com",
-               "explainpaper.com", "mem.ai", "tome.app", "taskade.com", "browse.ai", "durable.co",
-               "magickpen.com"],
-    "value": "General"
-});
+Query for the AIDrop dropdown
+
+// ========== Build the list of AI domains ==========
+let aiDomains = dynamic([
+    "adcreative.ai","canva.com","chat.openai.com","chatgpt.com","claude.ai",
+    "deepai.org","deepdreamgenerator.com","designs.ai","elevenlabs.io","gamma.app",
+    "gemini.google.com","huggingface.co","ideogram.ai","invideo.io","openart.ai",
+    "perplexity.ai","phind.com","play.ht","quillbot.com","replicate.com",
+    "runwayml.com","stability.ai","stablediffusionweb.com","artbreeder.com",
+    "vectorizer.ai","voicemod.net","audiogen.com","pika.art","synthesia.io",
+    "heygen.com","agentgpt.reworkd.ai","auto-gpt.net","notion.so","jasper.ai",
+    "copy.ai","scite.ai","elicit.org","mistral.ai","anthropic.com","cohere.ai",
+    "runpod.io","scenario.com","leonardo.ai","pictory.ai","fliki.ai","descript.com",
+    "replit.com","sourcegraph.com","codeium.com","consensus.app","scispace.com",
+    "explainpaper.com","mem.ai","tome.app","taskade.com","browse.ai","durable.co",
+    "magickpen.com"
+]);
+// ---------- Return one row per value + a “General” row ----------
+datatable(AI:string) [ "General" ]
+| union (mv-expand AI = aiDomains)
+| order by AI
+
+Tick Include default value and set it to General.
+If you want multi-select, also tick Allow multiple selection (the main query below works for both single and multi).
 
 
 ---
 
-🧠 2. Refactorizarea interogării KQL cu parametrii
+2  Main query (paste into your workbook step)
 
-let AIs = dynamic(["adcreative.ai", "canva.com", "chat.openai.com", "chatgpt.com", "claude.ai",
-                   "deepai.org", "deepdreamgenerator.com", "designs.ai", "elevenlabs.io", "gamma.app",
-                   "gemini.google.com", "huggingface.co", "ideogram.ai", "invideo.io", "openart.ai",
-                   "perplexity.ai", "phind.com", "play.ht", "quillbot.com", "replicate.com",
-                   "runwayml.com", "stability.ai", "stablediffusionweb.com", "artbreeder.com",
-                   "vectorizer.ai", "voicemod.net", "audiogen.com", "pika.art", "synthesia.io",
-                   "heygen.com", "agentgpt.rework.ai", "auto-gpt.net", "notion.so", "jasper.ai",
-                   "copy.ai", "scite.ai", "elicit.org", "mistral.ai", "anthropic.com", "cohere.ai",
-                   "runpod.io", "scenario.com", "leonardo.ai", "pictory.ai", "fliki.ai", "descript.com",
-                   "replit.com", "sourcegraph.com", "codeium.com", "consensus.app", "scispace.com",
-                   "explainpaper.com", "mem.ai", "tome.app", "taskade.com", "browse.ai", "durable.co",
-                   "magickpen.com"]);
+// ==================================
+// Parameters coming from the workbook
+// ==================================
+let StartTime = datetime({TimeRange:start});
+let EndTime   = datetime({TimeRange:end});
 
+// If the dropdown allows one value, you get a plain string.
+// If “Allow multiple selection” is ON, you get a comma-separated list – convert to dynamic array
+let SelAI_raw = '{AIDrop:value}';
+let SelAI =
+    iff(strcontains(SelAI_raw, ','), dynamic(split(SelAI_raw, ',')), SelAI_raw);
+
+// =====================================
+// Static list of AI-related URL domains
+// =====================================
+let aiDomains = dynamic([
+    "adcreative.ai","canva.com","chat.openai.com","chatgpt.com","claude.ai",
+    "deepai.org","deepdreamgenerator.com","designs.ai","elevenlabs.io","gamma.app",
+    "gemini.google.com","huggingface.co","ideogram.ai","invideo.io","openart.ai",
+    "perplexity.ai","phind.com","play.ht","quillbot.com","replicate.com",
+    "runwayml.com","stability.ai","stablediffusionweb.com","artbreeder.com",
+    "vectorizer.ai","voicemod.net","audiogen.com","pika.art","synthesia.io",
+    "heygen.com","agentgpt.reworkd.ai","auto-gpt.net","notion.so","jasper.ai",
+    "copy.ai","scite.ai","elicit.org","mistral.ai","anthropic.com","cohere.ai",
+    "runpod.io","scenario.com","leonardo.ai","pictory.ai","fliki.ai","descript.com",
+    "replit.com","sourcegraph.com","codeium.com","consensus.app","scispace.com",
+    "explainpaper.com","mem.ai","tome.app","taskade.com","browse.ai","durable.co",
+    "magickpen.com"
+]);
+
+// =============== Actual data =================
 DeviceNetworkEvents
-| where Timestamp between (startofday(ago(1d)) .. now()) // acesta va fi înlocuit automat de TimeRange picker
-| where RemoteUrl has_any (AIs)
-| where AIFilter == "General" or RemoteUrl has AIFilter
-| project Timestamp, DeviceName, InitiatingProcessFileName, RemoteUrl, ReportId
+| where Timestamp between (StartTime .. EndTime)
+| where RemoteUrl has_any(aiDomains)
+| extend AISite = tostring(RemoteUrl)          // keep a copy for the result Grid
+| where
+      // ---------- Filtering logic ----------
+      (
+          // “General” selected (single-value mode)  – or present in the selection list (multi-select)
+          SelAI == "General"
+          or
+          ("General" in (SelAI))
+          or
+          // Specific AI selected
+          (isarray(SelAI) and RemoteUrl has_any(SelAI))    // multi-select
+          or
+          (isarray(SelAI) == false and RemoteUrl contains SelAI)  // single-select
+      )
+| project Timestamp, DeviceName, InitiatingProcessFileName,
+          RemoteUrl, ReportId
 | order by Timestamp desc
 
+How the filter works
+
+General (or nothing selected) → the where clause evaluates to true, so the query shows all rows that match one of the AI domains.
+
+When one or several concrete domains are chosen, only events with a matching RemoteUrl survive.
+
+
 
 ---
 
-✅ Rezultat
+3  Visualisation ideas
 
-Acum vei avea un workbook cu:
+Start with a Grid to see raw rows.
 
-Selector de interval orar pentru a alege perioada analizată.
+Add a Bar chart → count() by AISite so you immediately see which AI tools are most popular.
 
-Drop-down din care poți alege "General" (vede tot) sau un AI specific (vede doar cine l-a accesat).
+Add a Time series → summarize count() by bin(Timestamp, 1h) to spot usage spikes.
 
 
-Dacă vrei, îți pot genera și JSON-ul complet al unui workbook cu acești parametri integrați, gata de import în Azure. Vrei asta?
+
+---
+
+Optional tweaks
+
+Need	How
+
+Maintain the domain list in one place	Move aiDomains into an Azure Function / saved parameter and call it from both queries.
+Group by type (e.g., “Image”, “Chat”, “Video”)	Add a small lookup table and lookup / join it to tag events.
+Keep a friendly label in the dropdown (“Claude (claude.ai)”)	Extend the aiDomains array to an array of objects [["claude.ai","Claude"], ...] and output both id and text columns from the parameter query.
+
+
+That’s it – paste the snippets above into a Workbook, hit Save, and you’ll have an English-language, fully interactive report with the required parameters. If you run into any Workbook-specific UI quirks, just let me know!
 
