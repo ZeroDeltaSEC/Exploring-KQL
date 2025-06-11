@@ -39,3 +39,359 @@ browse.ai
 durable.co
 
 magickpen.com
+
+
+
+# Microsoft Sentinel Workbook - AI Services Monitor
+
+## Workbook Configuration
+
+### Step 1: Creating Parameters
+
+**Parameter 1: TimeRange**
+- Type: Time range picker
+- Name: `TimeRange`
+- Label: `Time Range`
+- Default value: `Last 24 hours`
+- Available options:
+  - Last 1 hour
+  - Last 4 hours
+  - Last 12 hours
+  - Last 24 hours
+  - Last 2 days
+  - Last 7 days
+  - Last 30 days
+
+**Parameter 2: GroupBy**
+- Type: Drop down
+- Name: `GroupBy`
+- Label: `Group by`
+- Options:
+  - `user` - Users
+  - `ai_service` - AI Service
+- Default value: `user`
+
+---
+
+## KQL Queries for the Workbook
+
+### Query 1: Main Results
+
+```kusto
+// Define AI service categories for classification
+let ai_services = datatable(domain: string, category: string, service_name: string)
+[
+    "claude.ai", "AI Chat", "Claude (Anthropic)",
+    "chat.openai.com", "AI Chat", "ChatGPT",
+    "chatgpt.com", "AI Chat", "ChatGPT",
+    "gemini.google.com", "AI Chat", "Google Gemini",
+    "canva.com", "Design AI", "Canva",
+    "adcreative.ai", "Marketing AI", "AdCreative.ai",
+    "designs.ai", "Design AI", "Designs.ai",
+    "figma.com", "Design AI", "Figma",
+    "huggingface.co", "AI Development", "Hugging Face",
+    "replicate.com", "AI Development", "Replicate",
+    "openai.com", "AI Development", "OpenAI",
+    "jasper.ai", "Content AI", "Jasper",
+    "copy.ai", "Content AI", "Copy.ai",
+    "notion.so", "Productivity AI", "Notion AI",
+    "anthropic.com", "AI Development", "Anthropic",
+    "stability.ai", "Image AI", "Stability AI",
+    "midjourney.com", "Image AI", "Midjourney",
+    "runwayml.com", "Video AI", "Runway ML",
+    "synthesia.io", "Video AI", "Synthesia",
+    "elevenlabs.io", "Audio AI", "ElevenLabs",
+    "perplexity.ai", "AI Search", "Perplexity",
+    "phind.com", "AI Search", "Phind",
+    "quillbot.com", "Writing AI", "QuillBot",
+    "grammarly.com", "Writing AI", "Grammarly"
+];
+
+// Main query for monitoring AI service access
+DeviceNetworkEvents
+| where TimeGenerated >= ago({TimeRange})
+| where RemoteUrl has_any (
+    "adcreative.ai", "canva.com", "chat.openai.com", "chatgpt.com", "claude.ai",
+    "deepai.org", "deepdreamgenerator.com", "designs.ai", "figma.com", "framer.app",
+    "gemini.google.com", "huggingface.co", "ideogram.ai", "invideo.io", "openart.ai",
+    "perplexity.ai", "phind.com", "play.ht", "quillbot.com", "replicate.com",
+    "runwayml.com", "stability.ai", "stablediffusionweb.com", "artbreeder.com",
+    "vectorizer.ai", "voicemod.net", "audiogen.com", "pika.art", "synthesia.io",
+    "heygen.com", "agentgpt.reworkd.ai", "auto-gpt.net", "notion.so", "jasper.ai",
+    "copy.ai", "scite.ai", "elicit.org", "mistral.ai", "anthropic.com", "cohere.ai",
+    "runpod.io", "scenario.com", "leonardo.ai", "pictory.ai", "fliki.ai", "descript.com",
+    "replit.com", "sourcegraph.com", "codeium.com", "consensus.app", "scispace.com",
+    "explainpaper.com", "mem.ai", "tome.app", "taskade.com", "browse.ai", "durable.co",
+    "magickpen.com", "grammarly.com"
+)
+// Extract the main domain from URL for classification
+| extend domain = extract(@"https?://(?:www\.)?([^/]+)", 1, RemoteUrl)
+// Join with AI service categories
+| join kind=leftouter ai_services on domain
+// Set default categories for unknown services
+| extend category = iif(isempty(category), "Other AI Service", category)
+| extend service_name = iif(isempty(service_name), domain, service_name)
+// Apply grouping based on selected parameter
+| extend GroupField = case(
+    "{GroupBy}" == "user", strcat(DeviceName, " (", InitiatingProcessFileName, ")"),
+    "{GroupBy}" == "ai_service", strcat(service_name, " - ", category),
+    "Unknown"
+)
+// Select columns for display
+| project 
+    ["Date and Time"] = TimeGenerated,
+    ["{GroupBy:label}"] = GroupField,
+    ["Device"] = DeviceName,
+    ["Process"] = InitiatingProcessFileName,
+    ["Accessed URL"] = RemoteUrl,
+    ["AI Service"] = service_name,
+    ["Category"] = category,
+    ["Report ID"] = ReportId
+| order by ["Date and Time"] desc
+```
+
+**Visualization Configuration:**
+- Type: Table
+- Title: `Results grouped by {GroupBy:label}`
+- Sort: Descending by "Date and Time"
+- Filtering: Enabled
+
+---
+
+### Query 2: Statistical Summary
+
+```kusto
+// General summary of AI activity
+let ai_services = datatable(domain: string, category: string, service_name: string)
+[
+    "claude.ai", "AI Chat", "Claude (Anthropic)",
+    "chat.openai.com", "AI Chat", "ChatGPT",
+    "chatgpt.com", "AI Chat", "ChatGPT",
+    "gemini.google.com", "AI Chat", "Google Gemini",
+    "canva.com", "Design AI", "Canva",
+    "adcreative.ai", "Marketing AI", "AdCreative.ai",
+    "designs.ai", "Design AI", "Designs.ai",
+    "figma.com", "Design AI", "Figma",
+    "huggingface.co", "AI Development", "Hugging Face",
+    "replicate.com", "AI Development", "Replicate",
+    "openai.com", "AI Development", "OpenAI",
+    "jasper.ai", "Content AI", "Jasper",
+    "copy.ai", "Content AI", "Copy.ai",
+    "notion.so", "Productivity AI", "Notion AI",
+    "anthropic.com", "AI Development", "Anthropic",
+    "stability.ai", "Image AI", "Stability AI",
+    "midjourney.com", "Image AI", "Midjourney",
+    "runwayml.com", "Video AI", "Runway ML",
+    "synthesia.io", "Video AI", "Synthesia",
+    "elevenlabs.io", "Audio AI", "ElevenLabs"
+];
+
+DeviceNetworkEvents
+| where TimeGenerated >= ago({TimeRange})
+| where RemoteUrl has_any (
+    "adcreative.ai", "canva.com", "chat.openai.com", "chatgpt.com", "claude.ai",
+    "deepai.org", "deepdreamgenerator.com", "designs.ai", "figma.com", "framer.app",
+    "gemini.google.com", "huggingface.co", "ideogram.ai", "invideo.io", "openart.ai",
+    "perplexity.ai", "phind.com", "play.ht", "quillbot.com", "replicate.com",
+    "runwayml.com", "stability.ai", "stablediffusionweb.com", "artbreeder.com",
+    "vectorizer.ai", "voicemod.net", "audiogen.com", "pika.art", "synthesia.io",
+    "heygen.com", "agentgpt.reworkd.ai", "auto-gpt.net", "notion.so", "jasper.ai",
+    "copy.ai", "scite.ai", "elicit.org", "mistral.ai", "anthropic.com", "cohere.ai",
+    "runpod.io", "scenario.com", "leonardo.ai", "pictory.ai", "fliki.ai", "descript.com",
+    "replit.com", "sourcegraph.com", "codeium.com", "consensus.app", "scispace.com",
+    "explainpaper.com", "mem.ai", "tome.app", "taskade.com", "browse.ai", "durable.co",
+    "magickpen.com", "grammarly.com"
+)
+| extend domain = extract(@"https?://(?:www\.)?([^/]+)", 1, RemoteUrl)
+| join kind=leftouter ai_services on domain
+| extend service_name = iif(isempty(service_name), domain, service_name)
+| summarize 
+    ["Total Events"] = count(),
+    ["Unique Users"] = dcount(DeviceName),
+    ["AI Services Accessed"] = dcount(service_name),
+    ["First Activity"] = min(TimeGenerated),
+    ["Last Activity"] = max(TimeGenerated)
+```
+
+**Visualization Configuration:**
+- Type: Table
+- Title: `Statistical Summary - Selected Period`
+- No sorting (single row)
+
+---
+
+### Query 3: Top AI Services
+
+```kusto
+// Top 15 most accessed AI services
+let ai_services = datatable(domain: string, category: string, service_name: string)
+[
+    "claude.ai", "AI Chat", "Claude (Anthropic)",
+    "chat.openai.com", "AI Chat", "ChatGPT",
+    "chatgpt.com", "AI Chat", "ChatGPT",
+    "gemini.google.com", "AI Chat", "Google Gemini",
+    "canva.com", "Design AI", "Canva",
+    "adcreative.ai", "Marketing AI", "AdCreative.ai",
+    "designs.ai", "Design AI", "Designs.ai",
+    "figma.com", "Design AI", "Figma",
+    "huggingface.co", "AI Development", "Hugging Face",
+    "replicate.com", "AI Development", "Replicate",
+    "openai.com", "AI Development", "OpenAI",
+    "jasper.ai", "Content AI", "Jasper",
+    "copy.ai", "Content AI", "Copy.ai",
+    "notion.so", "Productivity AI", "Notion AI",
+    "anthropic.com", "AI Development", "Anthropic",
+    "stability.ai", "Image AI", "Stability AI",
+    "midjourney.com", "Image AI", "Midjourney",
+    "runwayml.com", "Video AI", "Runway ML",
+    "synthesia.io", "Video AI", "Synthesia",
+    "elevenlabs.io", "Audio AI", "ElevenLabs"
+];
+
+DeviceNetworkEvents
+| where TimeGenerated >= ago({TimeRange})
+| where RemoteUrl has_any (
+    "adcreative.ai", "canva.com", "chat.openai.com", "chatgpt.com", "claude.ai",
+    "deepai.org", "deepdreamgenerator.com", "designs.ai", "figma.com", "framer.app",
+    "gemini.google.com", "huggingface.co", "ideogram.ai", "invideo.io", "openart.ai",
+    "perplexity.ai", "phind.com", "play.ht", "quillbot.com", "replicate.com",
+    "runwayml.com", "stability.ai", "stablediffusionweb.com", "artbreeder.com",
+    "vectorizer.ai", "voicemod.net", "audiogen.com", "pika.art", "synthesia.io",
+    "heygen.com", "agentgpt.reworkd.ai", "auto-gpt.net", "notion.so", "jasper.ai",
+    "copy.ai", "scite.ai", "elicit.org", "mistral.ai", "anthropic.com", "cohere.ai",
+    "runpod.io", "scenario.com", "leonardo.ai", "pictory.ai", "fliki.ai", "descript.com",
+    "replit.com", "sourcegraph.com", "codeium.com", "consensus.app", "scispace.com",
+    "explainpaper.com", "mem.ai", "tome.app", "taskade.com", "browse.ai", "durable.co",
+    "magickpen.com", "grammarly.com"
+)
+| extend domain = extract(@"https?://(?:www\.)?([^/]+)", 1, RemoteUrl)
+| join kind=leftouter ai_services on domain
+| extend category = iif(isempty(category), "Other AI Service", category)
+| extend service_name = iif(isempty(service_name), domain, service_name)
+| summarize 
+    ["Access Count"] = count(),
+    ["Unique Users"] = dcount(DeviceName)
+    by ["AI Service"] = service_name, ["Category"] = category
+| order by ["Access Count"] desc
+| take 15
+```
+
+**Visualization Configuration:**
+- Type: Table
+- Title: `Top 15 AI Services Accessed`
+- Sort: Descending by "Access Count"
+
+---
+
+### Query 4: Activity by Categories
+
+```kusto
+// Distribution of activity across AI service categories
+let ai_services = datatable(domain: string, category: string, service_name: string)
+[
+    "claude.ai", "AI Chat", "Claude (Anthropic)",
+    "chat.openai.com", "AI Chat", "ChatGPT",
+    "chatgpt.com", "AI Chat", "ChatGPT",
+    "gemini.google.com", "AI Chat", "Google Gemini",
+    "canva.com", "Design AI", "Canva",
+    "adcreative.ai", "Marketing AI", "AdCreative.ai",
+    "designs.ai", "Design AI", "Designs.ai",
+    "figma.com", "Design AI", "Figma",
+    "huggingface.co", "AI Development", "Hugging Face",
+    "replicate.com", "AI Development", "Replicate",
+    "openai.com", "AI Development", "OpenAI",
+    "jasper.ai", "Content AI", "Jasper",
+    "copy.ai", "Content AI", "Copy.ai",
+    "notion.so", "Productivity AI", "Notion AI",
+    "anthropic.com", "AI Development", "Anthropic",
+    "stability.ai", "Image AI", "Stability AI",
+    "midjourney.com", "Image AI", "Midjourney",
+    "runwayml.com", "Video AI", "Runway ML",
+    "synthesia.io", "Video AI", "Synthesia",
+    "elevenlabs.io", "Audio AI", "ElevenLabs"
+];
+
+DeviceNetworkEvents
+| where TimeGenerated >= ago({TimeRange})
+| where RemoteUrl has_any (
+    "adcreative.ai", "canva.com", "chat.openai.com", "chatgpt.com", "claude.ai",
+    "deepai.org", "deepdreamgenerator.com", "designs.ai", "figma.com", "framer.app",
+    "gemini.google.com", "huggingface.co", "ideogram.ai", "invideo.io", "openart.ai",
+    "perplexity.ai", "phind.com", "play.ht", "quillbot.com", "replicate.com",
+    "runwayml.com", "stability.ai", "stablediffusionweb.com", "artbreeder.com",
+    "vectorizer.ai", "voicemod.net", "audiogen.com", "pika.art", "synthesia.io",
+    "heygen.com", "agentgpt.reworkd.ai", "auto-gpt.net", "notion.so", "jasper.ai",
+    "copy.ai", "scite.ai", "elicit.org", "mistral.ai", "anthropic.com", "cohere.ai",
+    "runpod.io", "scenario.com", "leonardo.ai", "pictory.ai", "fliki.ai", "descript.com",
+    "replit.com", "sourcegraph.com", "codeium.com", "consensus.app", "scispace.com",
+    "explainpaper.com", "mem.ai", "tome.app", "taskade.com", "browse.ai", "durable.co",
+    "magickpen.com", "grammarly.com"
+)
+| extend domain = extract(@"https?://(?:www\.)?([^/]+)", 1, RemoteUrl)
+| join kind=leftouter ai_services on domain
+| extend category = iif(isempty(category), "Other AI Service", category)
+| summarize 
+    ["Total Access"] = count(),
+    ["Unique Users"] = dcount(DeviceName),
+    ["Different Services"] = dcount(domain)
+    by ["AI Category"] = category
+| order by ["Total Access"] desc
+```
+
+**Visualization Configuration:**
+- Type: Pie chart or Bar chart
+- Title: `Distribution by AI Categories`
+
+---
+
+## Documentation and Explanations
+
+### What this workbook monitors:
+
+1. **AI Chat Services**: Claude, ChatGPT, Google Gemini
+2. **Design Services**: Canva, Figma, Designs.ai
+3. **Content Services**: Jasper, Copy.ai, Notion AI
+4. **Image AI Services**: Midjourney, Stability AI, Leonardo
+5. **Video AI Services**: Runway ML, Synthesia, Pictory
+6. **Development Services**: Hugging Face, OpenAI, Replicate
+7. **Audio AI Services**: ElevenLabs, Murf
+8. **Writing Services**: QuillBot, Grammarly
+
+### How to use the parameters:
+
+**Time Range Parameter:**
+- Select the period for which you want to see activity
+- Options: 1 hour to 30 days
+- Recommendation: Start with 24 hours for an overview
+
+**Group By Parameter:**
+- **Users**: See what AI services each user is accessing
+- **AI Service**: See how many users are accessing each service
+
+### Interpreting the results:
+
+**Important columns:**
+- **Date and Time**: When the access occurred
+- **Device**: Computer from which access was made
+- **Process**: Application used (Chrome, Firefox, etc.)
+- **Accessed URL**: Complete link
+- **Category**: Type of AI service
+
+**Key indicators to watch:**
+- Users with frequent access to multiple AI services
+- Popular AI services in the organization
+- Usage trends over time
+- Unusual or suspicious activity
+
+### Implementation steps:
+
+1. Open Microsoft Sentinel
+2. Navigate to **Workbooks**
+3. Click **+ New**
+4. Add **Parameters section**
+5. Configure the two parameters (TimeRange and GroupBy)
+6. Add **Query sections** for each of the 4 queries
+7. Configure visualizations for each section
+8. Save the workbook as "AI Services Monitor"
+
+This workbook will provide you with complete visibility into AI service usage in your organization, without needing JSON or complex configurations!
