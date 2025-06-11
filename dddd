@@ -646,3 +646,15 @@ Working query and table view
 
 Let me know — I can send you the full file in seconds.
 
+xxxxx
+
+
+{
+  "name": "SortBy",
+  "type": "DropDown",
+  "value": "User",
+  "options": [
+    { "value": "User", "label": "User (DeviceName)" },
+    { "value": "AI", "label": "AI Used (RemoteUrl)" }
+  ]
+}
