@@ -508,3 +508,12 @@ A dynamic KQL query that responds to both.
 
 Would you like me to generate the full .workbook JSON file so you can import this directly into Sentinel?
 
+
+xxxx
+
+| order by
+    case(
+        '{SortBy}' == 'User', tostring(DeviceName),
+        '{SortBy}' == 'AI', tostring(RemoteUrl),
+        tostring(Timestamp)
+    ) desc
