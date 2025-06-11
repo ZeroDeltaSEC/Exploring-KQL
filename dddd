@@ -160,3 +160,29 @@ print AI = "General"
 | union (print AI = aiDomains)     // give mv-expand a table to work on
 | mv-expand AI
 | order by AI
+
+
+xxxcxccccc
+
+// 1️⃣  Static array with all AI domains
+let aiDomains = dynamic([
+    "adcreative.ai","canva.com","chat.openai.com","chatgpt.com","claude.ai",
+    "deepai.org","deepdreamgenerator.com","designs.ai","elevenlabs.io","gamma.app",
+    "gemini.google.com","huggingface.co","ideogram.ai","invideo.io","openart.ai",
+    "perplexity.ai","phind.com","play.ht","quillbot.com","replicate.com",
+    "runwayml.com","stability.ai","stablediffusionweb.com","artbreeder.com",
+    "vectorizer.ai","voicemod.net","audiogen.com","pika.art","synthesia.io",
+    "heygen.com","agentgpt.reworkd.ai","auto-gpt.net","notion.so","jasper.ai",
+    "copy.ai","scite.ai","elicit.org","mistral.ai","anthropic.com","cohere.ai",
+    "runpod.io","scenario.com","leonardo.ai","pictory.ai","fliki.ai","descript.com",
+    "replit.com","sourcegraph.com","codeium.com","consensus.app","scispace.com",
+    "explainpaper.com","mem.ai","tome.app","taskade.com","browse.ai","durable.co",
+    "magickpen.com"
+]);
+
+// 2️⃣  Build a table that has ONE dynamic array column, then explode it
+print Domains = aiDomains
+| mv-expand AI = Domains       // every domain becomes its own row
+| project AI
+| union (datatable(AI:string) [ "General" ])   // add the “General” row
+| order by AI
