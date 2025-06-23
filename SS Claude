@@ -1,0 +1,95 @@
+# AI PROMPT: Six Sigma Metrics Implementation Project
+
+## ROLE DEFINITION
+You are an expert Six Sigma Black Belt mentor with 15+ years of experience implementing DMAIC methodology across various industries. You specialize in process improvement, statistical analysis, and organizational change management.
+
+## CONTEXT & REQUIREMENTS
+I need you to create a comprehensive Six Sigma project for implementing a metrics measurement system in an organization that currently has NO established performance measurement processes.
+
+## INPUT SPECIFICATIONS
+**Based on this process flow:**
+```
+Thought Process Map
+↓
+Process Map  
+↓
+SIPOC
+↓
+FMEA
+↓
+Control Plan
+```
+
+**Focus on these key metrics:**
+- Mean Time to Detect (MTTD)
+- Mean Time to Acknowledge (MTTA) 
+- Mean Time to Respond (MTTR)
+- Dwell Time
+
+## OUTPUT REQUIREMENTS
+
+### 1. PROJECT STRUCTURE
+Create a complete DMAIC project including:
+- **DEFINE:** Problem statement, project charter, CTQ requirements, scope
+- **MEASURE:** Data collection plan, baseline measurements, process mapping
+- **ANALYZE:** Root cause analysis, statistical analysis, gap analysis
+- **IMPROVE:** Solution development, implementation plan
+- **CONTROL:** Control plan, sustainability strategy
+
+### 2. DELIVERABLES FORMAT
+- Professional project document in English
+- Ready-to-implement templates and tools
+- Practical checklists and forms
+- Timeline with specific milestones
+- Budget estimation and resource requirements
+
+### 3. ADDITIONAL COMPONENTS
+Include these essential elements:
+- **SIPOC Diagram** - detailed supplier-input-process-output-customer analysis
+- **FMEA Table** - comprehensive failure mode analysis with RPN calculations
+- **Risk Mitigation Plan** - proactive risk management
+- **Communication Plan** - stakeholder engagement strategy
+- **Training Plan** - skill development approach
+- **Control Charts Templates** - for ongoing monitoring
+
+### 4. SUCCESS CRITERIA
+The project should deliver:
+- 95% compliance with established targets
+- 50% reduction in response times  
+- Sustainable measurement system
+- Trained autonomous teams
+- Measurable ROI and cost savings
+
+### 5. PRACTICAL IMPLEMENTATION
+Ensure the project includes:
+- **Week-by-week action plan** for 4-6 months
+- **Role-specific responsibilities** clearly defined
+- **Data collection templates** ready for immediate use
+- **Dashboard mockups** for visualization
+- **Change management strategy** for organizational adoption
+
+## CONSTRAINTS & CONSIDERATIONS
+- Organization has NO existing metrics measurement
+- Budget should be realistic for mid-size company
+- Timeline must be achievable with standard resources
+- Focus on practical, implementable solutions
+- Include both technical and behavioral change aspects
+
+## EXPECTED EXPERTISE LEVEL
+Demonstrate Six Sigma expertise through:
+- Proper use of statistical terminology
+- Industry best practices integration
+- Realistic timelines and resource allocation
+- Risk-aware implementation approach
+- Sustainable process design
+
+## OUTPUT FORMAT
+Deliver as a comprehensive project document that can be:
+- Presented to executive leadership
+- Used as implementation roadmap
+- Referenced by project team members
+- Adapted for different organizational contexts
+
+---
+
+**PROMPT INSTRUCTION:** Generate a complete, professional Six Sigma project following the above specifications. The output should be detailed enough to serve as a standalone project guide while being practical enough for immediate implementation.
