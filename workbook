@@ -1,668 +1,103 @@
-6import { useState } from 'react';
-
-export default function IncidentSearchTool() {
-  const [keyword, setKeyword] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState('both');
-  const [error, setError] = useState('');
-  const [searched, setSearched] = useState(false);
-
-  // Mock incidents data (in a real application, this would come from an API)
-  const mockIncidents = [
-    { 
-      id: 1, 
-      title: 'Malware detected on workstation', 
-      platform: 'defender', 
-      description: 'Trojan-type malware detected on workstation HR-PC-023', 
-      severity: 'high',
-      link: 'https://security.microsoft.com/incidents/12345' 
-    },
-    { 
-      id: 2, 
-      title: 'Phishing attempt identified', 
-      platform: 'defender', 
-      description: 'Suspicious email containing malicious links to authentication portal copy', 
-      severity: 'medium',
-      link: 'https://security.microsoft.com/incidents/23456' 
-    },
-    { 
-      id: 3, 
-      title: 'Suspicious authentication activity', 
-      platform: 'sentinel', 
-      description: 'Multiple failed login attempts from unknown IP address', 
-      severity: 'high',
-      link: 'https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/12345' 
-    },
-    { 
-      id: 4, 
-      title: 'Abnormal connection to external server', 
-      platform: 'sentinel', 
-      description: 'A workstation is attempting to connect to an external server with suspicious reputation', 
-      severity: 'medium',
-      link: 'https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/23456' 
-    },
-    { 
-      id: 5, 
-      title: 'Ransomware blocked', 
-      platform: 'defender', 
-      description: 'Ransomware attempt blocked on file server', 
-      severity: 'critical',
-      link: 'https://security.microsoft.com/incidents/34567' 
-    },
-    { 
-      id: 6, 
-      title: 'Data exfiltration alert', 
-      platform: 'sentinel', 
-      description: 'Unusual data transfer to unverified cloud service', 
-      severity: 'high',
-      link: 'https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/34567' 
-    },
-    { 
-      id: 7, 
-      title: 'Abnormal user behavior', 
-      platform: 'sentinel', 
-      description: 'A user account accessing resources outside normal working hours', 
-      severity: 'low',
-      link: 'https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/45678' 
-    },
-    { 
-      id: 8, 
-      title: 'Malicious file detected', 
-      platform: 'defender', 
-      description: 'A file with virus signature was detected in the temporary folder', 
-      severity: 'medium',
-      link: 'https://security.microsoft.com/incidents/45678' 
-    },
-  ];
-
-  const handleSearch = () => {
-    setIsLoading(true);
-    setSearched(true);
-    setError('');
-    
-    // Simulate API call with setTimeout
-    setTimeout(() => {
-      try {
-        if (!keyword.trim()) {
-          setSearchResults([]);
-          setError('Please enter a search keyword');
-          setIsLoading(false);
-          return;
-        }
-
-        const lowerKeyword = keyword.toLowerCase();
-        
-        // Filter incidents based on keyword and selected platform
-        let results = mockIncidents.filter(incident => {
-          const matchesKeyword = 
-            incident.title.toLowerCase().includes(lowerKeyword) || 
-            incident.description.toLowerCase().includes(lowerKeyword);
-            
-          if (selectedPlatform === 'both') {
-            return matchesKeyword;
-          } else {
-            return matchesKeyword && incident.platform === selectedPlatform;
-          }
-        });
-        
-        setSearchResults(results);
-        setIsLoading(false);
-      } catch (error) {
-        setError('An error occurred during search');
-        setIsLoading(false);
-      }
-    }, 1000); // Simulate network delay
-  };
-
-  // Get the severity color based on the severity level
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'critical':
-        return 'bg-red-600';
-      case 'high':
-        return 'bg-red-400';
-      case 'medium':
-        return 'bg-yellow-400';
-      case 'low':
-        return 'bg-blue-400';
-      default:
-        return 'bg-gray-400';
-    }
-  };
-
-  // Get the platform badge color
-  const getPlatformBadgeColor = (platform) => {
-    return platform === 'defender' ? 'bg-blue-600' : 'bg-purple-600';
-  };
-
-  // Handle key press for Enter key
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-
-  return (
-    <div className="max-w-4xl mx-auto p-6 bg-gray-100 rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Microsoft Security Incident Search Tool</h1>
-      
-      <div className="flex mb-4">
-        <div className="w-3/4 mr-2">
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Enter keyword to search for incidents..."
-            className="w-full p-2 border border-gray-300 rounded"
-          />
-        </div>
-        
-        <div className="w-1/4 ml-2">
-          <select
-            value={selectedPlatform}
-            onChange={(e) => setSelectedPlatform(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-          >
-            <option value="both">Both Platforms</option>
-            <option value="defender">Defender Only</option>
-            <option value="sentinel">Sentinel Only</option>
-          </select>
-        </div>
-      </div>
-      
-      <button
-        onClick={handleSearch}
-        disabled={isLoading}
-        className="w-full p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors mb-6"
-      >
-        {isLoading ? 'Searching...' : 'Search'}
-      </button>
-      
-      {error && <div className="p-4 mb-4 bg-red-100 text-red-700 rounded">{error}</div>}
-      
-      {searched && !isLoading && searchResults.length === 0 && !error && (
-        <div className="p-4 bg-green-100 text-green-700 rounded flex items-center justify-center">
-          <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-          <span className="font-medium">All Clear! No incidents found matching your search criteria.</span>
-        </div>
-      )}
-      
-      {searchResults.length > 0 && (
-        <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {searchResults.map((incident) => (
-                  <tr key={incident.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getSeverityColor(incident.severity)}`}>
-                        {incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getPlatformBadgeColor(incident.platform)}`}>
-                        {incident.platform.charAt(0).toUpperCase() + incident.platform.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{incident.title}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-500">{incident.description}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <a 
-                        href={incident.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        View details
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      
-      <div className="mt-6 text-xs text-gray-500">
-        <p>Note: This is a demo tool using mock data. In a production environment, this would connect to your Microsoft Defender and Microsoft Sentinel APIs.</p>
-      </div>
-    </div>
-  );
-}
-
-
-..............
-
-I see you're using the Azure Log Analytics / Sentinel query interface, which has different visualization options compared to what I initially described. Let me adjust the approach to work with the interface shown in your screenshot.
-
-For this environment, we'll need to modify our implementation to use KQL queries that output the data we need and create the search functionality within the constraints of Azure Workbooks.
-
-Here's how to implement the workbook in this specific interface:
-
-## Step-by-Step Implementation for Log Analytics Workbook
-
-### Step 1: Create a Parameter for Search Keyword
-
-1. In your workbook, click "Add parameter"
-2. Configure a text parameter:
-   - Name: `SearchKeyword`
-   - Display name: "Search Keyword"
-   - Required: No
-   - Get data from: None
-
-### Step 2: Create a Parameter for Platform Selection
-
-1. Click "Add parameter"
-2. Configure a dropdown parameter:
-   - Name: `Platform`
-   - Display name: "Platform"
-   - Required: Yes
-   - Get data from: JSON
-   - JSON input:
-     ```json
-     [
-       {"value": "both", "label": "Both Platforms"},
-       {"value": "defender", "label": "Defender Only"},
-       {"value": "sentinel", "label": "Sentinel Only"}
-     ]
-     ```
-   - Select default value: "both"
-
-### Step 3: Create the Microsoft Defender Incidents Query
-
-1. Click "Add query" in your workbook
-2. Enter this KQL query:
-
-```
-// Only execute if Platform parameter is "both" or "defender"
-let platformFilter = "{Platform}";
-let searchKeyword = "{SearchKeyword}";
-let runQuery = platformFilter == "both" || platformFilter == "defender";
-SecurityIncident
-| where runQuery
-| where ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender"
-| extend severity = case(
-    Severity == "High", "high",
-    Severity == "Medium", "medium", 
-    Severity == "Low", "low",
-    Severity == "Critical", "critical",
-    "medium"
+Ah, înțeleg! Vrei să generezi un text formatat gata pentru copy-paste care să arate exact ca în poza. Îți voi arăta cum să creezi un query KQL care să producă textul formatat.
+Query pentru generarea textului formatat
+kqllet MessageID = "1234xyz";
+EmailEvents
+| where NetworkMessageId == MessageID
+| join kind=leftouter (
+    EmailAttachmentInfo
+    | where NetworkMessageId == MessageID
+    | summarize AttachmentCount = count()
+) on NetworkMessageId
+| join kind=leftouter (
+    EmailUrlInfo
+    | where NetworkMessageId == MessageID  
+    | summarize URLCount = count()
+) on NetworkMessageId
+| extend 
+    AuthDetails = parse_json(AuthenticationDetails),
+    SPF_Result = iif(isempty(tostring(parse_json(AuthenticationDetails).SPF)), "unset", tostring(parse_json(AuthenticationDetails).SPF)),
+    DKIM_Result = iif(isempty(tostring(parse_json(AuthenticationDetails).DKIM)), "unset", tostring(parse_json(AuthenticationDetails).DKIM)),
+    DMARC_Result = iif(isempty(tostring(parse_json(AuthenticationDetails).DMARC)), "unset", tostring(parse_json(AuthenticationDetails).DMARC)),
+    CompAuth_Result = iif(isempty(tostring(parse_json(AuthenticationDetails).CompAuth)), "unset", tostring(parse_json(AuthenticationDetails).CompAuth)),
+    AttCount = iif(isempty(AttachmentCount), 0, AttachmentCount),
+    UrlCount = iif(isempty(URLCount), 0, URLCount)
+| project FormattedReport = strcat(
+    "Email Analysis Report\n\n",
+    "🕐 Time: ", format_datetime(TimeGenerated, "yyyy-MM-dd HH:mm:ss"), "\n",
+    "👤 Sender: ", SenderFromAddress, " (", SenderFromAddress, ")\n", 
+    "📧 Recipient: ", RecipientEmailAddress, "\n",
+    "🌐 Sender IP: ", SenderIPv4, "\n\n",
+    "🔐 Authentication:\n",
+    "• SPF: ", SPF_Result, "\n",
+    "• DKIM: ", DKIM_Result, "\n", 
+    "• DMARC: ", DMARC_Result, "\n",
+    "• CompAuth: ", CompAuth_Result, "\n\n",
+    "📎 Attachments: ", AttCount, "\n",
+    "🔗 URL Count: ", UrlCount, "\n\n",
+    "📦 Delivery: ", DeliveryAction, "\n",
+    "📋 Subject: ", Subject, "\n"
 )
-| extend platform = "defender"
-| extend link = strcat("https://security.microsoft.com/incidents/", IncidentId)
-| where searchKeyword == "" or Title contains searchKeyword or Description contains searchKeyword
-| project 
-    Severity = severity,
-    Platform = platform,
-    Title = Title,
-    Description = Description,
-    ["View Details"] = strcat("['View in Defender'](", link, ")")
-| order by Severity asc
-```
-
-3. Set visualization to "Grid"
-4. Select "Run query"
-
-### Step 4: Create the Microsoft Sentinel Incidents Query
-
-1. Click "Add query" in your workbook
-2. Enter this KQL query:
-
-```
-// Only execute if Platform parameter is "both" or "sentinel"
-let platformFilter = "{Platform}";
-let searchKeyword = "{SearchKeyword}";
-let runQuery = platformFilter == "both" || platformFilter == "sentinel";
-SecurityIncident
-| where runQuery
-| where not(ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender")
-| extend severity = case(
-    Severity == "High", "high",
-    Severity == "Medium", "medium", 
-    Severity == "Low", "low",
-    Severity == "Critical", "critical",
-    "medium"
+| project-away NetworkMessageId1, URLCount, AttachmentCount
+Alternativă cu format exact ca în poză
+kqllet MessageID = "1234xyz";
+EmailEvents
+| where NetworkMessageId == MessageID
+| join kind=leftouter (
+    EmailAttachmentInfo
+    | where NetworkMessageId == MessageID
+    | summarize AttachmentCount = count()
+) on NetworkMessageId
+| join kind=leftouter (
+    EmailUrlInfo
+    | where NetworkMessageId == MessageID  
+    | summarize URLCount = count()
+) on NetworkMessageId
+| extend 
+    SPF_Status = iif(isempty(tostring(parse_json(AuthenticationDetails).SPF)), "unset", tostring(parse_json(AuthenticationDetails).SPF)),
+    DKIM_Status = iif(isempty(tostring(parse_json(AuthenticationDetails).DKIM)), "unset", tostring(parse_json(AuthenticationDetails).DKIM)),
+    DMARC_Status = iif(isempty(tostring(parse_json(AuthenticationDetails).DMARC)), "unset", tostring(parse_json(AuthenticationDetails).DMARC)),
+    CompAuth_Status = iif(isempty(tostring(parse_json(AuthenticationDetails).CompAuth)), "unset", tostring(parse_json(AuthenticationDetails).CompAuth))
+| extend CopyPasteText = strcat(
+    "Email Analysis Report\n",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n",
+    "🕐 Time: ", format_datetime(TimeGenerated, "yyyy-MM-dd HH:mm:ss"), "\n",
+    "👤 Sender: ", SenderFromAddress, " (<", SenderFromAddress, ">)\n",
+    "📧 Recipient: ", RecipientEmailAddress, "\n", 
+    "🌐 Sender IP: ", SenderIPv4, "\n\n",
+    "🔐 Authentication:\n",
+    "   • SPF: ", SPF_Status, "\n",
+    "   • DKIM: ", DKIM_Status, "\n",
+    "   • DMARC: ", DMARC_Status, "\n", 
+    "   • CompAuth: ", CompAuth_Status, "\n\n",
+    "📎 Attachments: ", iif(isempty(AttachmentCount), "0", tostring(AttachmentCount)), "\n",
+    "🔗 URL Count: ", iif(isempty(URLCount), "0", tostring(URLCount)), "\n\n",
+    "📦 Delivery: ", DeliveryAction, "\n",
+    "📋 Subject: ", Subject, "\n\n",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 )
-| extend platform = "sentinel"
-| extend link = strcat("https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/", IncidentId)
-| where searchKeyword == "" or Title contains searchKeyword or Description contains searchKeyword
-| project 
-    Severity = severity,
-    Platform = platform,
-    Title = Title,
-    Description = Description,
-    ["View Details"] = strcat("['View in Sentinel'](", link, ")")
-| order by Severity asc
-```
+| project CopyPasteText
+Cum să folosești în Workbook
 
-3. Set visualization to "Grid"
-4. Select "Run query"
+Adaugă o celulă Query cu unul din query-urile de mai sus
+Înlocuiește "1234xyz" cu parametrul {MessageID}
+Setează vizualizarea la "Table"
+Configurează tabla:
 
-### Step 5: Add a Text Query for "All Clear" Message
-
-1. Click "Add query" in your workbook
-2. Enter this KQL query:
-
-```
-// This query checks if both the Defender and Sentinel queries returned results
-let platformFilter = "{Platform}";
-let searchKeyword = "{SearchKeyword}";
-
-// Only run if a search keyword was provided
-let hasKeyword = searchKeyword != "";
-
-// Get Defender results count
-let defenderCount = 
-    SecurityIncident
-    | where (platformFilter == "both" || platformFilter == "defender")
-    | where ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender"
-    | where searchKeyword == "" or Title contains searchKeyword or Description contains searchKeyword
-    | count;
-
-// Get Sentinel results count
-let sentinelCount = 
-    SecurityIncident
-    | where (platformFilter == "both" || platformFilter == "sentinel")
-    | where not(ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender")
-    | where searchKeyword == "" or Title contains searchKeyword or Description contains searchKeyword
-    | count;
-
-// Check if we have any results
-let totalCount = 
-    defenderCount + sentinelCount;
-
-// Return "All Clear" message if appropriate
-print Message = iff(hasKeyword && totalCount == 0, "✓ All Clear! No incidents found matching your search criteria.", "")
-| where Message != ""
-```
-
-3. Set visualization to "Text"
-4. In the formatting options, select "Make this item conditionally visible"
-5. Set condition: `SearchKeyword is not empty`
-6. Click "Run query"
-
-### Step 6: Add Instructions Text Block
-
-1. Click "Add text" in your workbook
-2. Add a description to guide users:
-
-```
-## Microsoft Security Incident Search Tool
-
-Enter a keyword to search for incidents across Microsoft Defender and Microsoft Sentinel platforms. Use the Platform dropdown to filter the source of incidents.
-
-1. Enter a search keyword in the "Search Keyword" field.
-2. Select which platform to search in the "Platform" dropdown.
-3. Click "Run queries" at the top of the page to execute the search.
-4. Results will display below, with links to view incidents in their native portals.
-
-**Note:** If no results are found, an "All Clear" message will be displayed.
-```
-
-### Step 7: Add Styling to the Workbook
-
-For each query, click on the "Style" button (shown in your screenshot) and:
-
-1. For both grid queries:
-   - Title: "Search Results - [Defender/Sentinel] Incidents"
-   - Show/hide title: Show
-   - Set conditional formatting:
-     - Column: "Severity"
-     - Apply to: "Background"
-     - Configure rules for each severity level (critical = red, high = orange, medium = yellow, low = blue)
-
-2. For the text query (All Clear):
-   - Text size: Large
-   - Text color: Green
-
-### Step 8: Save and Test the Workbook
-
-1. Click "Save" on the workbook editor
-2. Enter a name for your workbook (e.g., "Security Incident Search Tool")
-3. Click "Apply" to save the workbook
-
-## Key Differences from Original Approach
-
-1. We're using native Azure Workbook parameters instead of custom JavaScript
-2. The search functionality is implemented using KQL query parameters 
-3. We're using the grid visualization which
+Ascunde header-ul
+Setează coloana să ocupe toată lățimea
+Activează word wrap pentru text lung
 
 
 
-.........xxxxxx....
-
-I understand you want the workbook to automatically search both Microsoft Defender and Microsoft Sentinel without needing to select a platform. Let me simplify the approach to meet this requirement.
-
-## Simplified Implementation for Both Platforms
-
-### Step 1: Create a Parameter for Search Keyword Only
-
-1. In your workbook, click "Add parameter"
-2. Configure a text parameter:
-   - Name: `SearchKeyword`
-   - Display name: "Search Keyword"
-   - Required: No
-   - Get data from: None
-
-### Step 2: Create a Combined Query for Both Platforms
-
-1. Click "Add query" in your workbook
-2. Enter this KQL query that searches both platforms at once:
-
-```
-let searchKeyword = "{SearchKeyword}";
-let hasKeyword = isnotempty(searchKeyword);
-
-// Get all incidents from both Defender and Sentinel
-SecurityIncident
-| extend platform = case(
-    ProviderName == "Microsoft Defender for Endpoint" or ProviderName == "Microsoft 365 Defender", "Defender",
-    "Sentinel"
+Query simplificat pentru test rapid
+kqlEmailEvents
+| where NetworkMessageId == "1234xyz"
+| extend ReportText = strcat(
+    "Time: ", TimeGenerated, "\n",
+    "Sender: ", SenderFromAddress, "\n",
+    "Recipient: ", RecipientEmailAddress, "\n", 
+    "Sender IP: ", SenderIPv4, "\n",
+    "Subject: ", Subject
 )
-| extend severity = case(
-    Severity == "High", "high",
-    Severity == "Medium", "medium", 
-    Severity == "Low", "low",
-    Severity == "Critical", "critical",
-    "medium"
-)
-| extend link = iff(
-    platform == "Defender",
-    strcat("https://security.microsoft.com/incidents/", IncidentId),
-    strcat("https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/IncidentsBlade/", IncidentId)
-)
-// Only filter by keyword if one was provided
-| where not(hasKeyword) or Title contains searchKeyword or Description contains searchKeyword
-// Project the fields we want to display
-| project 
-    Severity = severity,
-    Platform = platform,
-    Title = Title,
-    Description = Description,
-    ["View Details"] = strcat("['View in ", platform, "'](", link, ")")
-| order by Severity asc
-```
-
-3. Set visualization to "Grid"
-4. Click "Style" and set:
-   - Title: "Security Incidents Search Results"
-   - Set conditional formatting for the Severity column
-5. Select "Run query"
-
-### Step 3: Add "All Clear" Message Query
-
-1. Click "Add query" in your workbook
-2. Enter this KQL query:
-
-```
-let searchKeyword = "{SearchKeyword}";
-let hasKeyword = isnotempty(searchKeyword);
-
-// Only run if a search keyword was provided
-if (hasKeyword) {
-    // Count incidents that match the search
-    let matchCount = 
-        SecurityIncident
-        | where Title contains searchKeyword or Description contains searchKeyword
-        | count;
-    
-    // Return "All Clear" message if no matches
-    if (matchCount == 0) {
-        print Message = "✓ All Clear! No incidents found matching your search criteria."
-    } else {
-        print Message = "" | where 1 == 0  // Return empty result
-    }
-} else {
-    print Message = "" | where 1 == 0  // Return empty result if no keyword
-}
-```
-
-3. Set visualization to "Text"
-4. Set format:
-   - Text size: Large
-   - Text color: Green
-5. Set conditional visibility: `isnotempty(SearchKeyword)`
-6. Click "Run query"
-
-### Step 4: Add Instructions Text Block
-
-1. Click "Add text" in your workbook
-2. Add a simplified description:
-
-```
-## Microsoft Security Incident Search Tool
-
-This workbook searches across both Microsoft Defender and Microsoft Sentinel platforms for security incidents matching your keyword.
-
-1. Enter a search keyword in the "Search Keyword" field
-2. Click "Run queries" at the top of the page to execute the search
-3. Results will display below with links to view incidents in their native portals
-4. If no matching incidents are found, an "All Clear" message will be displayed
-```
-
-### Step 5: Save and Test the Workbook
-
-1. Click "Save" on the workbook editor
-2. Enter a name for your workbook (e.g., "Security Incident Combined Search Tool")
-3. Click "Apply" to save the workbook
-
-## How This Works
-
-1. This simplified version searches both platforms automatically without requiring a platform selection
-2. The main query merges results from both Defender and Sentinel, clearly indicating which platform each incident comes from
-3. Links are created dynamically based on the platform
-4. The "All Clear" message only shows when a keyword is entered and no matching incidents are found
-
-This approach is more streamlined and better meets your requirement to automatically search both platforms without needing to make a selection.
-
-Is there anything else you'd like me to adjust about this implementation?
-
-
-xxxxxxxcc
-
-let searchKeyword = "{SearchText}";
-let hasKeyword = isnotempty(searchKeyword);
-
-SecurityAlert
-| extend platform = case(
-    ProductName == "Microsoft Defender for Endpoint" or ProductName == "Microsoft 365 Defender", "Defender",
-    "Sentinel"
-)
-| extend severity = case(
-    Severity == "High", "high",
-    Severity == "Medium", "medium",
-    Severity == "Low", "low",
-    "medium"
-)
-| extend link = iff(
-    platform == "Defender",
-    strcat("https://security.microsoft.com/alerts/", SystemAlertId),
-    strcat("https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/AlertBlade/alertId/", SystemAlertId)
-)
-| where not(hasKeyword) or AlertName contains searchKeyword or Description contains searchKeyword
-| project
-    Severity = severity,
-    Platform = platform,
-    Title = AlertName,
-    Description,
-    ["View Details"] = strcat("View in ", platform, ": [", AlertName, "](", link, ")")
-| order by Severity asc
-
-
-xxxxxxxxcxcccc
-
-let searchKeyword = "{SearchText}";
-let hasKeyword = isnotempty(searchKeyword);
-
-SecurityAlert
-| extend platform = case(
-    ProductName == "Microsoft Defender for Endpoint" or ProductName == "Microsoft 365 Defender", "Defender",
-    "Sentinel"
-)
-| extend severity = case(
-    AlertSeverity == "High", "high",
-    AlertSeverity == "Medium", "medium",
-    AlertSeverity == "Low", "low",
-    "medium"
-)
-| extend link = iff(
-    platform == "Defender",
-    strcat("https://security.microsoft.com/alerts/", SystemAlertId),
-    strcat("https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/AlertBlade/alertId/", SystemAlertId)
-)
-| where not(hasKeyword) or AlertName contains searchKeyword or Description contains searchKeyword
-| project
-    Severity = severity,
-    Platform = platform,
-    Title = AlertName,
-    Description,
-    ["View Details"] = strcat("View in ", platform, ": [", AlertName, "](", link, ")")
-| order by Severity asc
-
-
-xxxxxxxxxxx
-
-let searchKeyword = '{SearchText}';
-let hasKeyword = isnotempty(searchKeyword);
-
-SecurityAlert
-| extend platform = case(
-    ProductName has "Defender", "Defender",
-    "Sentinel"
-)
-| where not(hasKeyword) or (
-    AlertName contains searchKeyword
-    or Description contains searchKeyword
-    or CompromisedEntity contains searchKeyword
-    or ExtendedProperties contains searchKeyword
-    or RemediationSteps contains searchKeyword
-)
-| project
-    TimeGenerated,
-    AlertName,
-    Description,
-    CompromisedEntity,
-    ProductName,
-    platform,
-    AlertSeverity,
-    AlertLink,
-    ["View Details"] = strcat("View: [", AlertName, "](", AlertLink, ")")
-| order by TimeGenerated desc
+| project ReportText
+Rezultatul va fi un text formatat pe care îl poți selecta direct din rezultatul query-ului și da copy-paste. Textul va arăta exact ca în raportul din poza ta!
