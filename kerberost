@@ -417,3 +417,141 @@ DeviceLogonEvents
 | where DeviceName != "chacha124"  // Alte device-uri
 | summarize LogonCount = count(), Devices = make_set(DeviceName) by AccountName
 | project AccountName, LogonCount, OtherDevices = Devices
+
+
+xxxxx
+xxxxxx
+xx
+ // === DEFENDER 365 QUERIES (rulează în security.microsoft.com) ===
+
+// 1. EXACT TIMELINE - Ce s-a întâmplat în momentul alertei
+let AlertTime = datetime("2024-09-11 10:30:00");  // Înlocuiește cu timpul real al alertei
+DeviceLogonEvents
+| where TimeGenerated between ((AlertTime - 15m) .. (AlertTime + 15m))
+| where DeviceName =~ "chacha124" or AccountName =~ "vasilica"
+| project TimeGenerated, ActionType, DeviceName, AccountName, LogonType, 
+          RemoteIP, FailureReason, Protocol
+| union (
+    DeviceNetworkEvents
+    | where TimeGenerated between ((AlertTime - 15m) .. (AlertTime + 15m))
+    | where DeviceName =~ "chacha124"
+    | project TimeGenerated, ActionType = "NetworkConnection", DeviceName, 
+              AccountName, LogonType = "", RemoteIP, 
+              FailureReason = strcat("Port: ", RemotePort), Protocol
+)
+| sort by TimeGenerated asc
+
+// 2. PROCESE ACTIVE în momentul alertei - Identifică aplicația responsabilă
+DeviceProcessEvents
+| where TimeGenerated between ((AlertTime - 10m) .. (AlertTime + 5m))
+| where DeviceName =~ "chacha124"
+| where AccountName =~ "vasilica"
+| project TimeGenerated, FileName, ProcessCommandLine, ParentProcessName, ProcessId
+| sort by TimeGenerated asc
+
+// 3. TOATE CONEXIUNILE de rețea inițiate în perioada alertei
+DeviceNetworkEvents  
+| where TimeGenerated between ((AlertTime - 10m) .. (AlertTime + 10m))
+| where DeviceName =~ "chacha124"
+| project TimeGenerated, InitiatingProcessFileName, RemoteIP, RemotePort, 
+          RemoteUrl, Protocol, AccountName
+| sort by TimeGenerated asc
+
+// === SENTINEL QUERIES (rulează în portal.azure.com → Sentinel) ===
+
+// 4. FAILED AUTHENTICATION EVENTS - Exact ce a triggerruit alerta
+SecurityEvent
+| where TimeGenerated between ((AlertTime - 30m) .. (AlertTime + 30m))
+| where EventID in (4625, 4771, 4776)  // Failed logon, Kerberos, NTLM
+| where Computer =~ "chacha124" or Account contains "vasilica" or TargetUserName contains "vasilica"
+| project TimeGenerated, EventID, Computer, Account, TargetUserName, 
+          IpAddress, LogonType, LogonProcessName, AuthenticationPackageName, 
+          FailureReason, SubStatus
+| sort by TimeGenerated asc
+
+// 5. CONTEXTUL COMPLET al alertei originale
+SecurityAlert
+| where SystemAlertId == "12345690"
+| project TimeGenerated, AlertName, AlertSeverity, Description, 
+          CompromisedEntity, RemediationSteps, ExtendedProperties
+| extend Details = parse_json(ExtendedProperties)
+
+// 6. PATTERN ANALYSIS - Cât de des se întâmplă?
+SecurityEvent
+| where TimeGenerated > ago(7d)
+| where EventID == 4625
+| where Computer =~ "chacha124" or Account contains "vasilica"
+| summarize DailyFailures = count() by bin(TimeGenerated, 1d), Account
+| render timechart 
+
+// === QUERIES PENTRU IDENTIFICAREA ROOT CAUSE ===
+
+// 7. TASK SCHEDULER - Verifică dacă e ceva programat
+// (Rulează în Defender)
+DeviceProcessEvents
+| where TimeGenerated > ago(24h)
+| where DeviceName =~ "chacha124"
+| where ParentProcessName =~ "svchost.exe" and ProcessCommandLine contains "taskhost"
+| project TimeGenerated, ProcessCommandLine, AccountName
+| sort by TimeGenerated desc
+
+// 8. SERVICII care rulează sub user "vasilica"
+// (Rulează în Sentinel)
+SecurityEvent
+| where TimeGenerated > ago(24h)
+| where EventID == 4624  // Successful logon
+| where LogonType == 5    // Service logon
+| where Account contains "vasilica"
+| project TimeGenerated, Computer, Account, LogonProcessName, AuthenticationPackageName
+| sort by TimeGenerated desc
+
+// 9. ANALIZA DE FRECVENȚĂ - Pentru a identifica pattern-uri
+// (Rulează în Sentinel)
+SecurityEvent
+| where TimeGenerated > ago(24h)
+| where EventID == 4625
+| where Computer =~ "chacha124" or Account contains "vasilica"
+| extend Hour = datetime_part("hour", TimeGenerated)
+| extend Minute = datetime_part("minute", TimeGenerated)
+| summarize Count = count() by Hour, Minute
+| where Count > 1
+| sort by Count desc
+
+// 10. LATERAL MOVEMENT - Verifică dacă user-ul încearcă pe alte sisteme
+// (Rulează în Sentinel)
+SecurityEvent
+| where TimeGenerated between ((AlertTime - 1h) .. (AlertTime + 1h))
+| where EventID == 4625
+| where Account contains "vasilica"
+| summarize FailedSystems = dcount(Computer), TotalAttempts = count() by Account
+| where FailedSystems > 1
+
+// === VERIFICATION QUERIES ===
+
+// 11. ACCOUNT STATUS - E cont blocat/expirat?
+// (Rulează în Sentinel)
+SecurityEvent
+| where TimeGenerated > ago(24h)
+| where EventID in (4740, 4767, 4725)  // Account locked, unlocked, disabled
+| where TargetUserName =~ "vasilica"
+| project TimeGenerated, EventID, Computer, TargetUserName, SubjectUserName
+
+// 12. CREDENTIAL VALIDATION - Testează cu credentiale corecte
+// (Rulează în Sentinel)
+SecurityEvent
+| where TimeGenerated > ago(24h)
+| where EventID == 4624  // Successful logon
+| where Account contains "vasilica"
+| project TimeGenerated, Computer, Account, LogonType, 
+          LogonProcessName, AuthenticationPackageName
+| sort by TimeGenerated desc
+| take 10
+
+// === FINAL ROOT CAUSE SUMMARY ===
+// Rulează după ce ai rezultate de la query-urile de mai sus
+print "INVESTIGAȚIE COMPLETĂ - Urmărește această ordine:"
+print "1. Rulează query 1-3 în DEFENDER pentru timeline exact"
+print "2. Rulează query 4-5 în SENTINEL pentru detalii alerta"  
+print "3. Rulează query 6,9 în SENTINEL pentru pattern analysis"
+print "4. Rulează query 7-8 pentru identificarea serviciilor/task-urilor"
+print "5. Verifică cu query 11-12 statusul contului"
