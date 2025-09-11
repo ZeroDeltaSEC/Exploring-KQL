@@ -256,3 +256,164 @@ kerbFails
 | summarize Fails=count() by Computer, TargetUserName, IpAddress, bin(T, 5m)
 | where Fails > 20
 | order by Fails desc
+
+
+xxxxx
+xxxxx
+
+
+// === PASUL 1: Obținerea detaliilor complete ale alertei ===
+SecurityAlert
+| where SystemAlertId == "12345690"
+| extend AlertDetails = parse_json(Entities)
+| project TimeGenerated, AlertName, AlertSeverity, Description, AlertDetails, 
+          StartTime, EndTime, CompromisedEntity, ExtendedProperties
+
+// === PASUL 2: Timeline-ul complet pentru user "vasilica" în ziua alertei ===
+let AlertInfo = SecurityAlert | where SystemAlertId == "12345690" | project StartTime, EndTime;
+let TimeWindow = AlertInfo | extend Start = StartTime - 2h, End = EndTime + 1h;
+let StartInvestigation = toscalar(TimeWindow | project Start);
+let EndInvestigation = toscalar(TimeWindow | project End);
+
+// Toate activitățile user-ului
+DeviceLogonEvents
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where AccountName =~ "vasilica" or AccountDomain contains "vasilica"
+| project TimeGenerated, ActionType, DeviceName, AccountName, LogonType, RemoteIP, 
+          IsLocalAdmin, LogonId, Activity = "Logon"
+| union (
+    DeviceProcessEvents
+    | where TimeGenerated between (StartInvestigation .. EndInvestigation)
+    | where AccountName =~ "vasilica"
+    | project TimeGenerated, ActionType, DeviceName, AccountName, 
+              LogonType = "", RemoteIP = "", IsLocalAdmin = "", LogonId = "", 
+              Activity = strcat("Process: ", FileName, " | ", ProcessCommandLine)
+)
+| union (
+    SecurityEvent
+    | where TimeGenerated between (StartInvestigation .. EndInvestigation)
+    | where Account has "vasilica" or TargetUserName has "vasilica"
+    | project TimeGenerated, ActionType = strcat("EventID: ", EventID), 
+              DeviceName = Computer, AccountName = coalesce(Account, TargetUserName),
+              LogonType = "", RemoteIP = IpAddress, IsLocalAdmin = "", LogonId = "", 
+              Activity = strcat("Security Event: ", Activity)
+)
+| sort by TimeGenerated asc
+
+// === PASUL 3: Analiza completă device "chacha124" ===
+// Toate procesele de pe device în perioada alertei
+DeviceProcessEvents
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where DeviceName =~ "chacha124"
+| project TimeGenerated, AccountName, FileName, ProcessCommandLine, 
+          ParentProcessName, MD5, SHA1, ProcessId
+| sort by TimeGenerated asc
+
+// === PASUL 4: Conexiunile de rețea suspicious de pe device ===
+DeviceNetworkEvents
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where DeviceName =~ "chacha124"
+| summarize Connections = count(), 
+            FirstSeen = min(TimeGenerated), 
+            LastSeen = max(TimeGenerated),
+            Protocols = make_set(Protocol),
+            Ports = make_set(RemotePort),
+            ProcessesUsed = make_set(InitiatingProcessFileName)
+    by RemoteIP, AccountName
+| sort by Connections desc
+
+// === PASUL 5: Căutarea aplicațiilor Office și activitatea lor ===
+DeviceProcessEvents
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where DeviceName =~ "chacha124"
+| where FileName has_any ("excel.exe", "winword.exe", "powerpnt.exe", "outlook.exe", "teams.exe")
+| join kind=leftouter (
+    DeviceNetworkEvents
+    | where TimeGenerated between (StartInvestigation .. EndInvestigation)
+    | where DeviceName =~ "chacha124"
+) on $left.ProcessId == $right.InitiatingProcessId
+| project TimeGenerated, AccountName, OfficeApp = FileName, ProcessCommandLine, 
+          RemoteIP, RemotePort, RemoteUrl
+| sort by TimeGenerated asc
+
+// === PASUL 6: Failed logon events corelate cu timeline-ul ===
+SecurityEvent
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where EventID in (4625, 4624, 4648)  // Failed, Success, Logon with explicit creds
+| where Computer =~ "chacha124" or Account has "vasilica" or TargetUserName has "vasilica"
+| project TimeGenerated, EventID, Computer, Account, TargetUserName, 
+          LogonType, IpAddress, LogonProcessName, AuthenticationPackageName
+| sort by TimeGenerated asc
+
+// === PASUL 7: Identificarea pattern-urilor automate ===
+// Verifică dacă sunt pattern-uri regulate (task-uri programate, etc.)
+SecurityEvent
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where EventID == 4625
+| where Computer =~ "chacha124" or Account has "vasilica"
+| extend Hour = datetime_part("hour", TimeGenerated),
+         Minute = datetime_part("minute", TimeGenerated),
+         Second = datetime_part("second", TimeGenerated)
+| summarize Attempts = count() by Hour, Minute
+| sort by Hour, Minute
+
+// === PASUL 8: Registry și File Access pentru aplicații Office ===
+DeviceFileEvents
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where DeviceName =~ "chacha124"
+| where AccountName =~ "vasilica"
+| where InitiatingProcessFileName has_any ("excel.exe", "winword.exe", "powerpnt.exe")
+| where ActionType in ("FileCreated", "FileModified", "FileDeleted")
+| project TimeGenerated, InitiatingProcessFileName, ActionType, FileName, FolderPath
+| sort by TimeGenerated asc
+
+// === PASUL 9: Corelarea cu Threat Intelligence ===
+let SuspiciousIPs = DeviceNetworkEvents
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where DeviceName =~ "chacha124"
+| distinct RemoteIP;
+ThreatIntelligenceIndicator
+| where TimeGenerated > ago(30d)
+| where NetworkIP in (SuspiciousIPs)
+| project NetworkIP, ThreatType, Description, Confidence, Tags
+
+// === PASUL 10: Analiza macro-urilor și script-urilor ===
+DeviceProcessEvents
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where DeviceName =~ "chacha124"
+| where ParentProcessName has_any ("excel.exe", "winword.exe", "powerpnt.exe")
+| where FileName has_any ("powershell.exe", "cmd.exe", "wscript.exe", "cscript.exe", "mshta.exe")
+| project TimeGenerated, ParentProcessName, FileName, ProcessCommandLine, AccountName
+| sort by TimeGenerated asc
+
+// === PASUL 11: Summary pentru documentarea cazului ===
+// Rezumat final pentru raport
+print "=== REZUMAT INVESTIGAȚIE ==="
+| union (
+    SecurityAlert
+    | where SystemAlertId == "12345690"
+    | project Info = strcat("ALERT: ", AlertName, " | Severity: ", AlertSeverity, " | Time: ", TimeGenerated)
+)
+| union (
+    DeviceProcessEvents
+    | where TimeGenerated between (StartInvestigation .. EndInvestigation)
+    | where DeviceName =~ "chacha124" and AccountName =~ "vasilica"
+    | where FileName has_any ("excel.exe", "winword.exe", "powerpnt.exe")
+    | summarize OfficeProcesses = count(), FirstOfficeActivity = min(TimeGenerated), LastOfficeActivity = max(TimeGenerated)
+    | project Info = strcat("OFFICE APPS: ", OfficeProcesses, " processes between ", FirstOfficeActivity, " - ", LastOfficeActivity)
+)
+| union (
+    SecurityEvent
+    | where TimeGenerated between (StartInvestigation .. EndInvestigation)
+    | where EventID == 4625 and (Computer =~ "chacha124" or Account has "vasilica")
+    | summarize FailedLogons = count(), FirstFail = min(TimeGenerated), LastFail = max(TimeGenerated)
+    | project Info = strcat("FAILED LOGONS: ", FailedLogons, " attempts between ", FirstFail, " - ", LastFail)
+)
+
+// === PASUL 12: Căutarea în alte device-uri pentru user "vasilica" ===
+DeviceLogonEvents
+| where TimeGenerated between (StartInvestigation .. EndInvestigation)
+| where AccountName =~ "vasilica"
+| where DeviceName != "chacha124"  // Alte device-uri
+| summarize LogonCount = count(), Devices = make_set(DeviceName) by AccountName
+| project AccountName, LogonCount, OtherDevices = Devices
